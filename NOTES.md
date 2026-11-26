@@ -1,4 +1,4 @@
-# 1711 (working title): project notes, v0.3 slice
+# 1711 (working title): project notes, v0.4 slice
 
 A ZX Spectrum 128K game. You are the clerk to Mayor Ellis of Carrickfergus,
 taking sworn statements at Braehead House, Islandmagee, in March 1711, as a
@@ -10,10 +10,13 @@ Based on the trial documents edited by Andrew Sneddon and Shannon Devlin
 w1711 graphic novel (CC BY-NC-ND) was read for research only: nothing from
 it is used.
 
-## What v0.3 has
+## What v0.4 has
 
 Title, the prologue (Sept 1710 to 3 March 1711: the haunting, the boy at
 the window, the grave, Agnes Wylie's death, Isobel's arrival, the apron),
+told as hearsay (v0.4): the clerk arrives on 3 March, so everything before
+is what the household says or swears ("Meg says", "they say"), closing on
+"You saw none of what came before. You have only what the household says."
 the Night One card, Night One's statements and Kate Rankin's parade
 (below), an end card, credits with the CC BY attribution. 48K machines
 get a "needs a 128K" message.
@@ -21,7 +24,8 @@ get a "needs a 128K" message.
 ### Night One's statements (v0.2)
 
 - **Hub**: the six statements (keys 1-6), B the clerk's book, K the parade
-  (once a night; after that it says she has been brought), X ends the night. A red mark beside a statement
+  (once a night; after that it says she has been brought), X ends the night
+  after "End the night? Y/N" (v0.4). A red mark beside a statement
   means a line in it is marked.
 - **Statement reader**: who and when sworn, the statement a clause at a
   time (rows 3-19, "page 1 of 2" when it runs over). Q/A move a line (and
@@ -43,11 +47,21 @@ get a "needs a 128K" message.
   sentence per choice, the fit (always, bright), then anything the clerk
   notices ("seen"). Then the record: the fit is written whatever happens,
   because the Mayor gives the words; each other line that applies is
-  shown and the clerk presses Y (bright, marked, written) or N (dim blue,
-  left out). The book shows the fit and the lines written, after the
-  findings, and runs on to another page when it is full.
+  shown and the clerk presses Y (bright, marked, written) or N (plain
+  white with a dash in the margin, left out; v0.3's dim blue was
+  unreadable). After the fit the scene types Kate's own plain words
+  ("spoken", v0.4). The book shows the fit under "In Mayor Ellis's words:"
+  in bright white (v0.4), then the lines written, after the findings, and
+  runs on to another page when it is full.
+- **The index of names** (v0.4): each accused has an ordinary detail
+  (invented, not from the records: flax and eggs, mending nets, a daughter
+  who walked to the minister's), the name in white, the detail indented in
+  yellow.
 - Every screen is drawn hidden and shown at once (`veil`/`unveil`: text
   colours go to a 768-byte copy while drawing), about 20 frames a page.
+- Register rules (v0.4): `strat` and `unveil` keep BC; `drawclause` keeps C
+  and returns B as the row below the block. Callers no longer push BC
+  around them.
 
 ## Build
 
@@ -56,9 +70,14 @@ Python 3 with Pillow, `pasmo`, a C compiler (`cc`, builds tools/zx0 once).
     python3 build.py            # -> 1711.tap
     python3 scripts/nightcheck.py 1
 
-build.py runs art/font.py, art/prologue_art.py and scripts/script.py, then
-assembles src/main.asm. Tape: BASIC loader (CLEAR 24575), loading screen
-(the house), code at 6000h.
+    python3 tools/keytest.py    # headless key-script tests (SkoolKit)
+
+build.py runs art/font.py, art/prologue_art.py, scripts/script.py and
+scripts/night.py, assembles src/night.inc on its own at NBUF (as high
+under C000h as it fits; A600h for Night One), packs it with ZX0 into
+src/night.zx0 and writes its labels to src/nightsym.inc, then assembles
+src/main.asm. `night` unpacks it to NBUF at the start of each night.
+Tape: BASIC loader (CLEAR 24575), loading screen (the house), code at 6000h.
 
 ## Files
 
@@ -76,6 +95,7 @@ assembles src/main.asm. Tape: BASIC loader (CLEAR 24575), loading screen
 | data/night1.py | Night One in the night format (draft content) |
 | scripts/nightcheck.py | Checks a night and lists what the clerk can find |
 | tools/simtest.py | From Night Porter: headless test runner (SkoolKit) |
+| tools/keytest.py | Runs tools/tests/*.keys, compares with tools/ref/*.png |
 
 ## The script engine
 
@@ -97,7 +117,13 @@ moonlight.
 
 - **statements**: each has an id, who, when sworn, and lines. A line is
   text, or `(text, claim, value)`. Two statements giving the same claim
-  different values are a contradiction the clerk can flag. A statement
+  different values are a contradiction the clerk can flag. A claim must
+  appear in at least two statements (a copy counts as its original):
+  nightcheck.py warns about one that doesn't. Otherwise make it plain text.
+- **dates**: every Night One statement shows "Sworn 3rd March". The real
+  sources are listed in data/night1.py (Gilmour's is from 5 March; Lowry's,
+  Margaret Wylie's and Gordon's come from Tisdall's account and the 1822
+  narrative), and the credits say "Dates and order compressed". A statement
   with `copy_of` repeats another word for word, as two of the real
   depositions do ("agreeth with the above, word for word"); the game
   should let the clerk notice that.
@@ -126,15 +152,18 @@ copied statement shares the original's clause table, so the words really
 are the same bytes.
 
 nightcheck.py prints the contradictions, the copies, every way the parade
-can be arranged and the text size. Night One: 3.2 KB of text, 2
-contradictions (the apron's five or nine knots; whether the house knew
-Janet Moore was coming), 1 copied statement, 8 parade arrangements.
+can be arranged and the text size. Night One (v0.4): 4.9 KB of text, 3
+contradictions (the apron's five or nine knots; who found the apron, Lowry
+or Miss Halliday; whether the house knew Janet Moore was coming), 1 copied
+statement, 8 parade arrangements. The parade also has "spoken": what the
+accused says, typed after the fit every time.
 
 ## Memory plan
 
-The code stays below C000h (7.4 KB free at v0.3; Night One's text,
-about 4 KB with the findings, is in main memory for now and moves to a bank
-with the boot stub). Nights' text and pictures go
+The code stays below C000h. v0.4: code 6000h-9962h (14.3 KB), then 3.2 KB
+free, then the night buffer A600h-BFFFh: Night One's text and tables, 6.4
+KB unpacked, kept in the code as 2.9 KB of ZX0 (was 6.4 KB unpacked in the
+code at v0.3). The buffer moves to a bank with the boot stub. Nights' text and pictures go
 in banks 1, 3, 4, 6 and 7, loaded from the tape like Night Porter's extras
 (boot stub, ROM loader, IM2 table in each bank), and are paged in at C000h
 when needed. About 3 KB of text a night uncompressed, so text is not the
@@ -155,15 +184,29 @@ Willson -> John Wilson, Donaldson -> Hugh Gilmour.
 
 ## Next
 
-1. Pack each night's text with ZX0 (Night One 4.0 KB -> 1.8 KB; the
-   prologue's 3.0 KB -> 1.8 KB), unpacked into a buffer when needed.
-2. Whether comparing costs anything (the Mayor's patience, candles), so
-   the clerk can't simply try every pair.
+1. Pack the prologue's script with ZX0 too (3.0 KB -> about 1.8 KB). Not
+   done in v0.4: the scripts jump between title, prologue and credits and
+   point at the pictures by address, so they need a "load script" opcode
+   and pictures by number first. The night's text is packed (v0.4).
+2. To discuss before building: what the clerk's book is for. Ideas: it
+   feeds Justice Lyle's doubts at the trial (the real Justice Upton argued
+   for acquittal and was outvoted); a candle that burns down with each
+   compare, so comparing has a cost and the clerk can't try every pair.
 3. Portraits (Isobel first), hand-checked for the "human, not monstrous"
    rule: the accused's scars are never the scary part.
 4. Banks and the boot stub; AY music (a slow theme, a church-bell tone).
 
 ## Testing
+
+v0.4: committed tests. `python3 tools/keytest.py` loads 1711.tap with
+tap2sna (128K ROM loader, to 6000h), runs each tools/tests/*.keys through
+tools/simtest.py and compares the screens with tools/ref/*.png pixel for
+pixel; any change fails, and the new screen goes to tools/out/ (--sheet
+writes a contact sheet, --update rewrites the references once a change is
+right). Tests: prologue (every page, title to hub), apron (Lowry line 2
+against Margaret Wylie line 2, the new who-found-it finding, written in,
+the book and the names page), parade (tell/among/room, Kate's words, N Y
+Y, the book with the Mayor's words, X then N, X then Y, the end card).
 
 v0.3: the parade, from the hub: tell/among/room (scene, three lines,
 N then Y), quiet/among/door (both door lines written, the book), a whole

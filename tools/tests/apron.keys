@@ -1,0 +1,20 @@
+# From the hub: statement 4 (Lowry), down to line 2 (she found the apron),
+# mark; statement 5 (Margaret Wylie), down to line 2 (Miss Halliday found
+# it first), mark, compare: the finding that the engine missed before
+# v0.4. Y writes it in the book; then B, the book and the names page.
+frames 1850
+every 60 40 26 SPACE
+1140 4
+1180 A
+1220 M
+1260 X
+1300 5
+1340 A
+1380 M
+1420 C
+1500 Y
+1640 SPACE
+1680 SPACE
+1720 B
+1800 SPACE
+shot 1250 1490 1630 1670 1760 1840

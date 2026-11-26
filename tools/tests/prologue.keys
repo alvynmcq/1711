@@ -1,0 +1,5 @@
+# Title -> the whole prologue, told as hearsay (SPACE skips the typing,
+# SPACE again turns the page) -> the Night One card -> the hub.
+frames 1101
+every 60 40 26 SPACE
+shot 50 95 135 175 215 255 295 335 375 415 455 495 535 575 615
