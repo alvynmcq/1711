@@ -8,8 +8,9 @@ screens with the reference screenshots in tools/ref/.
   python3 tools/keytest.py --sheet      # also write tools/out/NAME_sheet.png
 
 Needs SkoolKit (pip install skoolkit) and Pillow. The tape is loaded with
-tap2sna (the real ROM loader, 128K) up to the code's start at 6000h, then
-tools/simtest.py runs it frame by frame. The simulation is exact, so a
+tap2sna (the real ROM loader, 128K) up to `game` (v0.7: after the boot
+stub has loaded the banks and turned IM2 on), then tools/simtest.py runs
+it frame by frame. The simulation is exact, so a
 screen that changes at all fails its test; look at tools/out/ to see why,
 and --update once the new screen is right.
 
@@ -55,9 +56,17 @@ def parse(path):
     return sorted(events), sorted(set(shots)), frames
 
 
+def game_address():
+    for ln in open(os.path.join(ROOT, "src", "main.sym")):
+        w = ln.split()
+        if len(w) == 3 and w[0] == "game":
+            return int(w[2].rstrip("Hh"), 16)
+    raise SystemExit("no `game` in src/main.sym: build first")
+
+
 def snapshot(tmp):
     snap = os.path.join(tmp, "s128.z80")
-    subprocess.run(["tap2sna.py", "-c", "machine=128", "--start", "0x6000",
+    subprocess.run(["tap2sna.py", "-c", "machine=128", "--start", str(game_address()),
                     os.path.join(ROOT, "1711.tap"), snap], check=True, stdout=subprocess.DEVNULL)
     return snap
 

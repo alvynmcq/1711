@@ -22,9 +22,8 @@ SEL     EQU 47h             ; bright white: the line the clerk is on
 MARKA   EQU 42h             ; bright red: the clerk's mark in the margin
 ROW0    EQU 3               ; first row of statement text
 
-night:  ld hl,nightz         ; unpack the night's text and tables (ZX0)
-        ld de,NBUF
-        call dzx0_standard
+night:  ld a,NIGHTBANK        ; the night's text and tables, read in place
+        call page           ; (op_night's LOAD pages the scripts back)
         xor a               ; a fresh night: no marks, nothing found
         ld (mk_n),a
         ld (par_done),a
@@ -1393,4 +1392,6 @@ pa_rm:      db 0
 cdl:        db 0            ; the candle: units left this night
 cdl_buf:    ds 24           ; its column of pixels, top to bottom
 night_fflag: ds 16          ; per finding: 0 not found, 1 left out, 2 written
-abuf:       ds 768          ; colours of a screen being drawn (veil)
+abuf:                       ; colours of a screen being drawn (veil); the
+        INCLUDE "boot.asm"  ; boot stub sits here: it runs once, before
+        ds 768-($-abuf)     ; abuf is first used

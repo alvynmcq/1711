@@ -1,9 +1,10 @@
 ; ============================================================
-;  1711  (working title) - v0.4 slice: title, prologue, Night One
+;  1711  (working title) - v0.7: title, prologue, Night One
 ;  statements and parade, credits
 ;  ZX Spectrum 128K. pasmo syntax. Loaded at 6000h by the BASIC
-;  loader (CLEAR 24575). Everything here stays below C000h, so
-;  later versions can page story and picture banks in at C000h.
+;  loader (CLEAR 24575). Everything here stays below C000h; the
+;  scripts, pictures and nights are in banks paged in at C000h
+;  (src/boot.asm loads them, build.py writes src/banks.inc).
 ;
 ;  The game is driven by scripts (src/script.inc, compiled by
 ;  scripts/script.py): a byte opcode, then its arguments.
@@ -26,9 +27,25 @@ start:
 stop48: halt
         jr stop48
 
-is128:  ld a,10h            ; bank 0 at C000h, 48 BASIC ROM
-        ld bc,7FFDh
-        out (c),a
+is128:  xor a               ; bank 0 at C000h, 48 BASIC ROM
+        call page
+        call B_boot         ; load the banks (the stub, in abuf)
+        jr c,booted
+        ld a,07h            ; a tape error or BREAK: say so and stop
+        call clsa
+        ld hl,msgtape
+        call textat
+        ld hl,msgtapeb
+        call textat
+stopt:  halt
+        jr stopt
+
+booted: di                  ; IM2: FDFDh jumps to isr, in every bank
+        ld a,0FEh
+        ld i,a
+        im 2
+        ld sp,5C00h         ; the stack in 5B00h-5BFFh: BASIC is done with
+        ei
         xor a
         ld (border),a
         out (254),a
@@ -37,20 +54,49 @@ game:   xor a               ; chunk 0: the title
         call run            ; the scripts LOAD one another
         jr game
 
-loadchunk:                  ; unpack script chunk A to SBUF; HL = SBUF
-        add a,a
-        ld l,a
-        ld h,0
-        ld de,chunktab
-        add hl,de
-        ld a,(hl)
-        inc hl
-        ld h,(hl)
-        ld l,a
+loadchunk:                  ; unpack script chunk A to SBUF (its bank stays in); HL = SBUF
+        ld hl,chunktab
+        call farent
+        call page
         ld de,SBUF
         call dzx0_standard
         ld hl,SBUF
         ret
+
+;  ---- Banks. curbank is the bank at C000h, written before the OUT
+; so an interrupt that pages (the music, later) always puts the right
+; one back.
+page:   ld (curbank),a      ; page bank A in at C000h (keeps DE, HL)
+        or 10h              ; and the 48 BASIC ROM
+        push bc
+        ld bc,7FFDh
+        out (c),a
+        pop bc
+        ret
+
+farent:                     ; entry A of table HL (db bank, dw address):
+        ld e,a              ; A = bank, HL = address
+        ld d,0
+        add hl,de
+        add hl,de
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ex de,hl
+        ret
+
+isr:    push af             ; IM2, every frame, whichever bank is in
+        push hl
+        ld hl,(frames)
+        inc hl
+        ld (frames),hl
+        pop hl
+        pop af
+        ei
+        reti
 
 ; ---- Z set if this is a 128K (bank 1 is separate RAM at C000h) ----
 detect128:
@@ -118,18 +164,17 @@ op_cls: ld a,(hl)           ; attr
         pop hl
         jp run
 
-op_pic: ld a,(hl)           ; db picture number (pictab: ZX0 screens)
+op_pic: ld a,(hl)           ; db picture number (pictab: bank, ZX0 screen)
         inc hl
         push hl
-        add a,a
-        ld l,a
-        ld h,0
-        ld de,pictab
-        add hl,de
-        ld e,(hl)
-        inc hl
-        ld d,(hl)
-        push de
+        ld hl,pictab
+        call farent
+        ld d,a
+        ld a,(curbank)
+        push af
+        ld a,d
+        call page
+        push hl
         ld hl,ATTR          ; hide the screen while it is unpacked;
         ld de,ATTR+1        ; the colours come last and show it at once
         ld bc,767
@@ -138,6 +183,8 @@ op_pic: ld a,(hl)           ; db picture number (pictab: ZX0 screens)
         pop hl
         ld de,4000h
         call dzx0_standard
+        pop af              ; the script's bank back
+        call page
         xor a
         ld (skip),a
         pop hl
@@ -264,25 +311,23 @@ op_portrait:                ; db portrait number, row, col
 ;  Screen
 ; ============================================================
 ; ---- portrait A (porttab, ZX0) at character row B, column C ----
-; PORTW x PORTH cells: unpacked to PSCR (the free space above the code),
+; PORTW x PORTH cells: unpacked to PSCR (in the portrait's own bank,
+; paged in for the drawing; the bank that was in goes back after),
 ; its colour cells blacked out first, then the pixels, then the colours,
 ; so it appears at once. Colours go through attrbase, so a hidden
 ; (veiled) night screen keeps it hidden too.
 PORTW   EQU 10
 PORTH   EQU 12
-PSCR    EQU END_OF_CODE     ; PORTW*PORTH*9 bytes, below the buffers (build.py checks)
 
 portrait:
         ld (p_rc),bc
-        add a,a
-        ld l,a
-        ld h,0
-        ld de,porttab
-        add hl,de
-        ld a,(hl)
-        inc hl
-        ld h,(hl)
-        ld l,a
+        ld hl,porttab
+        call farent
+        ld d,a
+        ld a,(curbank)
+        ld (p_was),a
+        ld a,d
+        call page
         ld de,PSCR
         call dzx0_standard
         ld bc,(p_rc)
@@ -354,10 +399,12 @@ pt4:    push bc
         ex de,hl
         pop bc
         djnz pt4
-        ret
+        ld a,(p_was)
+        jp page
 
 p_rc:   dw 0                ; col, row
 p_y:    db 0
+p_was:  db 0                ; the bank that was in
 
 clsa:                       ; clear the screen; every colour cell = A
         push af
@@ -655,6 +702,8 @@ ws2:    halt
 ; ============================================================
 msg48:  db 10,4,47h,"1711 needs a 128K Spectrum.",0
 msg48b: db 12,4,07h,"(128, +2, +2A, +3 or Next)",0
+msgtape: db 10,4,47h,"Tape loading error.",0
+msgtapeb: db 12,4,07h,"Rewind a little and load again.",0
 prompt: db 23,27,PROMPTC,"SPACE",0
 
 c_row:  db 0
@@ -665,12 +714,12 @@ typing: db 0
 skip:   db 0
 border: db 0
 attrbase: dw ATTR
+curbank: db 0
+frames: dw 0
 
         INCLUDE "night.asm"
         INCLUDE "dzx0_standard.asm"
         INCLUDE "font.inc"
-        INCLUDE "scripts.inc"       ; the script chunks, ZX0 (build.py)
-        INCLUDE "pics.inc"
-        INCLUDE "nightsym.inc"      ; the night's labels, at NBUF (build.py)
-nightz: INCBIN "night.zx0"          ; the night's text, ZX0, unpacked by `night`
+        INCLUDE "banks.inc"         ; chunks, pictures, portraits: bank + address (build.py)
+        INCLUDE "nightsym.inc"      ; the night's labels, at NBUF in its bank (build.py)
 END_OF_CODE:

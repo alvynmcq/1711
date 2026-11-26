@@ -13,3 +13,11 @@ src/nightblob.*
 src/nightsym.inc
 src/night.zx0
 tools/out/
+src/pics.txt
+src/portraits.txt
+src/port_*.inc
+src/banks.inc
+src/bank*.asm
+src/bank*.bin
+src/bank*.sym
+src/bootsyms.inc

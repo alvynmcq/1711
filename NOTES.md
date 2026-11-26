@@ -1,4 +1,4 @@
-# 1711 (working title): project notes, v0.5 slice
+# 1711 (working title): project notes, v0.7
 
 A ZX Spectrum 128K game. You are the clerk to Mayor Ellis of Carrickfergus,
 taking sworn statements at Braehead House, Islandmagee, in March 1711, as a
@@ -9,6 +9,13 @@ Based on the trial documents edited by Andrew Sneddon and Shannon Devlin
 (w1711.org, CC BY 4.0). Real places and dates; every person renamed. The
 w1711 graphic novel (CC BY-NC-ND) was read for research only: nothing from
 it is used.
+
+## What v0.7 has
+
+v0.7: the banks and the boot stub (see Memory plan). Nothing on screen
+changes: every test screen is the same, pixel for pixel. The code below
+C000h goes from 14.2 KB to 6.2 KB, with 18 KB free there for Nights Two
+and Three and the trial.
 
 ## What v0.5 has
 
@@ -123,22 +130,36 @@ Python 3 with Pillow, `pasmo`, a C compiler (`cc`, builds tools/zx0 once).
 
     python3 tools/keytest.py    # headless key-script tests (SkoolKit)
 
-build.py runs art/font.py, art/prologue_art.py, art/portraits.py, scripts/script.py and
-scripts/night.py, assembles src/night.inc on its own at NBUF (as high
-under C000h as it fits; A600h for Night One), packs it with ZX0 into
-src/night.zx0 and writes its labels to src/nightsym.inc. Then each script
-chunk (src/chunkN.inc) is assembled on its own at SBUF (as high under
-C000h as the largest fits; B300h in v0.5) and packed into src/scripts.inc
-with the chunk table, and src/main.asm is assembled. `night` unpacks the
-night to NBUF at the start of each night; LOAD unpacks a chunk to SBUF.
-The two buffers overlap: no script runs while a night is unpacked.
-Tape: BASIC loader (CLEAR 24575), loading screen (the house), code at 6000h.
+build.py runs art/font.py, art/prologue_art.py, art/portraits.py,
+scripts/script.py and scripts/night.py, then builds the bank images, each
+assembled at C000h (v0.7):
+
+- bank 1: the script buffer SBUF (C000h, as long as the largest chunk; not
+  on the tape), then the script chunks packed with ZX0, the prologue
+  pictures and the portraits shown from scripts (Isobel). LOAD pages bank
+  1 in and unpacks the chunk to SBUF, in the same bank; the script runs
+  from there.
+- bank 3: Night One's text and tables (night.inc) at C000h, read in place:
+  `night` pages bank 3 in for the whole night (no unpacking, no buffer),
+  then the portraits shown during the night (Kate, next).
+
+Which bank a portrait goes in is PORT_BANK in build.py. Then it writes
+src/banks.inc (chunktab, pictab, porttab as `db bank, dw address`, and the
+stub's load table B_tab) and src/nightsym.inc (the night's labels, NBUF =
+C000h), and assembles src/main.asm. build.py stops if the code reaches
+C000h or a bank runs into PSCR or the IM2 table, and prints what's free.
+
+Tape: BASIC loader (CLEAR 24575), loading screen (the house), code at
+6000h, then a headerless block per bank (bank 1, bank 3), each packed with
+ZX0 when that saves room (bank 1's contents are packed already, so it goes
+raw; bank 3 goes packed, 2942 bytes for 6452).
 
 ## Files
 
 | File | What it is |
 |---|---|
-| src/main.asm | The engine: 128K check, script interpreter, text, keys |
+| src/main.asm | The engine: 128K check, paging (`page`, `farent`), IM2 handler, script interpreter, text, keys |
+| src/boot.asm | The boot stub (v0.7): loads the banks, writes the IM2 table into each; sits in abuf |
 | src/dzx0_standard.asm | ZX0 decoder (Einar Saukas, BSD 3-Clause, tools/zx0/LICENSE) |
 | scripts/story.py | Title, prologue and credits as scripts; the name list |
 | scripts/script.py | Compiles scripts to chunks (src/chunkN.inc), packs pictures to src/pics.inc |
@@ -151,7 +172,7 @@ Tape: BASIC loader (CLEAR 24575), loading screen (the house), code at 6000h.
 | data/night1.py | Night One in the night format (draft content) |
 | scripts/nightcheck.py | Checks a night and lists what the clerk can find |
 | tools/simtest.py | From Night Porter: headless test runner (SkoolKit) |
-| tools/keytest.py | Runs tools/tests/*.keys, compares with tools/ref/*.png |
+| tools/keytest.py | Runs tools/tests/*.keys, compares with tools/ref/*.png (snapshot at `game`, after boot) |
 
 ## The script engine
 
@@ -230,19 +251,41 @@ accused says, typed after the fit every time.
 
 ## Memory plan
 
-The code stays below C000h. v0.6: code 6000h-9732h (13.8 KB; the portrait
-routine is about 160 bytes, Isobel 367 packed), then the portrait scratch
-PSCR (1080 bytes, not on the tape), then 2.6 KB free (v0.5: code to 9522h,
-4.2 KB free), then the night buffer A600h-BFFFh (the script buffer B400h-BFFFh
-lies inside it): Night One's text and tables, 6.4
-KB unpacked, kept in the code as 2.9 KB of ZX0 (was 6.4 KB unpacked in the
-code at v0.3). The buffer moves to a bank with the boot stub. Nights' text and pictures go
-in banks 1, 3, 4, 6 and 7, loaded from the tape like Night Porter's extras
-(boot stub, ROM loader, IM2 table in each bank), and are paged in at C000h
-when needed. About 3 KB of text a night uncompressed, so text is not the
-constraint; pictures are. Portraits pack to about 350-600 bytes each (Isobel 367):
-until there are banks they live in the code (room for three or four
-more), then each night's accused moves to that night's bank.
+v0.7 (decided 26 Nov): Night Porter's way, the boot stub, the ROM loader
+and the IM2 table in each bank.
+
+| Where | What |
+|---|---|
+| 5B00h-5BFFh | The stack, once IM2 is on (BASIC's done with) |
+| 6000h-7821h | The code: engine, night screens, ZX0 decoder, font, tables, variables, abuf (6178 bytes) |
+| 7822h-BFFFh | Free: 18398 bytes, for Nights Two and Three's screens and the trial |
+| C000h, bank 0 | Nothing yet but the IM2 table (the AY player, later) |
+| bank 1 | SBUF C000h-CC0Ch, chunks, pictures, Isobel; ends E06Eh, 5970 free under PSCR |
+| bank 3 | Night One C000h-D933h; 9417 free (Kate goes here, with PSCR) |
+| banks 4, 6, 7 | Night Two, Night Three, the trial (each with its portraits); free now |
+| F7C0h-FBF7h | PSCR, the portrait scratch, in any bank that holds a portrait |
+| FDFDh-FF00h | The IM2 jump (JP isr) and table, in banks 0, 1, 3, 4, 6, 7 |
+
+- Startup: `start` checks for a 128K (else "needs a 128K"), pages bank 0,
+  calls `B_boot`. The stub is assembled inside abuf (the veil buffer:
+  768 bytes of zeros on the tape anyway, first used in the night), so it
+  costs nothing. For each block in B_tab it pages the bank, loads it with
+  the ROM's LD-BYTES entered at 056Bh (so BREAK comes back to us), and if
+  packed (loaded high, just under FDFDh) unpacks it in place to its
+  address. Then the IM2 table into banks 0, 1, 3, 4, 6, 7, bank 0 back in.
+  A tape error or BREAK: "Tape loading error. Rewind a little and load
+  again." and stop. Then `booted`: I = FEh, IM 2, the stack to 5B00h.
+- `page` (A = bank) writes `curbank` before the OUT, so an interrupt that
+  pages (the music) can always put the right bank back. `isr` only counts
+  `frames` for now. `farent` reads a (bank, address) table entry.
+- PIC and PORTRAIT page the picture's bank in, draw, and put back the
+  bank that was in, so a script (bank 1) or a night (bank 3) can show a
+  picture from any bank. A portrait unpacks to PSCR in its own bank.
+- Each night's finding flags (16 bytes) and parade record stay below
+  C000h, so they outlive the night's bank being paged out (for the trial).
+- When Night Two comes: night.inc needs a short header at C000h (the
+  NIGHT_ constants, the tables' addresses) so night.asm reads them from
+  the paged night rather than from nightsym.inc; `night` takes a bank.
 
 ## Names (real -> game)
 
@@ -305,9 +348,16 @@ Willson -> John Wilson, Donaldson -> Hugh Gilmour.
      count or the findings themselves. Draft lines to be shown first.
    Build order: banks; the patience in Night One; Nights Two and Three
    (with portraits); the trial; the end.
-4. Banks and the boot stub; AY music (a slow theme, a church-bell tone).
+4. Banks and the boot stub: done in v0.7. AY music (a slow theme, a
+   church-bell tone) still to do: the player goes in bank 0, called from
+   `isr`, which pages it in and puts `curbank` back.
 
 ## Testing
+
+v0.7: keytest's snapshot is taken at `game` (after the stub has loaded the
+banks and IM2 is on), not at 6000h; every reference screen is unchanged.
+Checked by hand: a tape with bank 3's block corrupted stops at "Tape
+loading error."; a 48K still stops at "needs a 128K".
 
 v0.6: apron.keys also shoots frame 1400, just after the second mark (the
 bright message, "C  compare" lit); the candle test shows it plain once the
