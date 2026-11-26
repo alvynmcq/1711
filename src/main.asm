@@ -1,5 +1,6 @@
 ; ============================================================
-;  1711  (working title) - v0.1 slice: title, prologue, credits
+;  1711  (working title) - v0.2 slice: title, prologue, Night One
+;  statements, credits
 ;  ZX Spectrum 128K. pasmo syntax. Loaded at 6000h by the BASIC
 ;  loader (CLEAR 24575). Everything here stays below C000h, so
 ;  later versions can page story and picture banks in at C000h.
@@ -65,7 +66,7 @@ detect128:
 ;  The script interpreter. HL = script. Each handler takes its
 ;  arguments from (HL), leaves HL after them and jumps to run.
 ; ============================================================
-NOPS    EQU 11
+NOPS    EQU 12
 
 run:    ld a,(hl)
         inc hl
@@ -90,6 +91,7 @@ run_bad:
 
 optab:  dw op_end,op_cls,op_pic,op_text,op_type,op_wait
         dw op_pause,op_border,op_clrrows,op_jump,op_choice
+        dw op_night
 
 op_end: ret
 
@@ -211,6 +213,12 @@ opc_go: ld e,(hl)
         ex de,hl
         jp run
 
+op_night:                   ; the night's screens (night.asm), until X
+        push hl
+        call night
+        pop hl
+        jp run
+
 ; ============================================================
 ;  Screen
 ; ============================================================
@@ -286,15 +294,17 @@ textat:                     ; HL -> row, col, attr, chars, 0. HL after the 0
         inc hl
         ld a,(hl)
         ld (c_col),a
+        inc hl
+        ld a,(hl)
+        ld (c_attr),a
+        inc hl
+textraw:                    ; c_row, c_col, c_attr set; HL -> chars, 0
+        ld a,(c_col)
         add a,a
         add a,a
         add a,a
         add a,MARGIN        ; text starts a few pixels into the cell
         ld (t_x),a
-        inc hl
-        ld a,(hl)
-        ld (c_attr),a
-        inc hl
         push hl
         ld a,MARGIN         ; A = margin + width in pixels
 ta0:    ld c,(hl)
@@ -383,7 +393,7 @@ ccl1:   ld (hl),0
         ld c,a
         ld b,0
         add hl,bc
-        ld bc,ATTR
+        ld bc,(attrbase)    ; the screen, or night.asm's hidden copy
         add hl,bc
         ld a,(c_attr)
         ld (hl),a
@@ -517,9 +527,12 @@ t_x:    db 0
 typing: db 0
 skip:   db 0
 border: db 0
+attrbase: dw ATTR
 
+        INCLUDE "night.asm"
         INCLUDE "dzx0_standard.asm"
         INCLUDE "font.inc"
         INCLUDE "script.inc"
         INCLUDE "pics.inc"
+        INCLUDE "night.inc"
 END_OF_CODE:

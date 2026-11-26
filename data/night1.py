@@ -115,6 +115,30 @@ NIGHT = {
         ],
     },
 
+    # -------------------------------------------------------------
+    # What the clerk sees when two marked lines are compared, and what
+    # goes in the book if he writes it down. Keyed by claim name for a
+    # contradiction, or "copy:<id>" for a statement sworn word for word
+    # the same as another. scripts/night.py refuses a finding with no
+    # text here. Plain statements of what was sworn: the clerk does not
+    # say who is lying, and nothing here says the accused did anything.
+    # -------------------------------------------------------------
+    "findings": {
+        "apron_knots": (
+            "Margaret Lowry saith five knots. Margaret Wylie saith nine. "
+            "It is the one apron.",
+            "Of the apron: Margaret Lowry saith it was tied with five knots, "
+            "Margaret Wylie saith nine."),
+        "moore_expected": (
+            "Hugh Gilmour saith none in the house knew Janet Moore was coming. "
+            "Mr Gordon saith he sent for her himself, and went down before her.",
+            "Mr Gordon himself sent for Janet Moore, and sat with Miss Halliday "
+            "before she came. Gilmour saith none knew."),
+        "copy:wilson": (
+            "Line for line, John Wilson swears the same words as William Dickey.",
+            "John Wilson's statement agreeth with William Dickey's, word for word."),
+    },
+
     # people named this night, for the clerk's index (game names)
     "people": {
         "isobel": "Isobel Halliday, 18, of Castlereagh, the afflicted",

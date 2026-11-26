@@ -5,6 +5,7 @@ Runs the art and script steps first:
   art/font.py          -> src/font.inc
   art/prologue_art.py  -> art/*.scr
   scripts/script.py    -> src/script.inc, src/pics.inc
+  scripts/night.py 1   -> src/night.inc (Night One's statements and findings)
 """
 import os
 import subprocess
@@ -13,8 +14,9 @@ import sys
 ROOT = os.path.dirname(os.path.abspath(__file__))
 ORG = 0x6000
 
-for script, cwd in (("font.py", "art"), ("prologue_art.py", "art"), ("script.py", "scripts")):
-    subprocess.run([sys.executable, script], cwd=os.path.join(ROOT, cwd), check=True,
+for cmd, cwd in ((["font.py"], "art"), (["prologue_art.py"], "art"), (["script.py"], "scripts"),
+                 (["night.py", "1"], "scripts")):
+    subprocess.run([sys.executable] + cmd, cwd=os.path.join(ROOT, cwd), check=True,
                    stdout=subprocess.DEVNULL)
 
 os.chdir(os.path.join(ROOT, "src"))

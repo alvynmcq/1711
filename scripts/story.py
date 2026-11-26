@@ -13,7 +13,7 @@ follow that account; every person's name has been changed:
 """
 from script import BLK, YEL, BYEL, WHT, BWHT, RED, BRED, CYN
 
-VERSION = "v0.1 slice"
+VERSION = "v0.2 slice"
 
 TITLE = [
     ("cls", WHT),
@@ -98,8 +98,15 @@ PROLOGUE = [
     ("wait",),
     ("text", 9, 9, BYEL, "N I G H T    O N E"),
     ("text", 11, 10, WHT, "3rd March 1711"),
-    ("text", 15, 4, YEL, "Not in this build yet: the slice"),
-    ("text", 16, 4, YEL, "continues here with the statements."),
+    ("text", 15, 2, YEL, "Mayor Ellis sits in the parlour. One by"),
+    ("text", 16, 2, YEL, "one they come in and swear, and you"),
+    ("text", 17, 2, YEL, "write down what they say."),
+    ("wait",),
+    ("night",),
+    ("cls", WHT),
+    ("story", YEL, "The rest of Night One is not in this build yet. Next: "
+                   "Kate Rankin is sent for, and you are to arrange how she "
+                   "is brought before Isobel."),
     ("wait",),
     ("jump", "credits"),
 ]

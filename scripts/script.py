@@ -17,6 +17,8 @@ A script is a list of steps run by the engine's `run` (src/main.asm):
   ("clear",)                       clear the text area (rows TEXT0-23)
   ("choice", [(key, label)...])    wait for one of the keys; jump to that label
   ("label", name) / ("jump", name)
+  ("night",)                       the night's screens (src/night.asm, data from
+                                   scripts/night.py) until the clerk presses X
   ("end",)                         return to the caller
 
 say/story keep a cursor in the text area and wrap at the right edge; a
@@ -33,7 +35,7 @@ from zx0 import compress  # noqa: E402
 
 # opcodes (must match src/main.asm)
 OP = dict(end=0, cls=1, pic=2, text=3, type=4, wait=5, pause=6, border=7,
-          clrrows=8, jump=9, choice=10)
+          clrrows=8, jump=9, choice=10, night=11)
 
 BLK, YEL, BYEL, WHT, BWHT, RED, BRED, CYN = 0x00, 0x06, 0x46, 0x07, 0x47, 0x02, 0x42, 0x05
 TEXT0 = 15                        # first text row under a picture
@@ -81,6 +83,8 @@ class Compiler:
             self.out.append("%s:" % st[1])
         elif k == "end":
             self.db(OP["end"])
+        elif k == "night":
+            self.db(OP["night"])
         elif k == "cls":
             self.db(OP["cls"], st[1])
             self.text0 = self.row = 1

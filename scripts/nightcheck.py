@@ -73,6 +73,17 @@ def main(n):
     print("\nClaims made once only (no conflict yet):",
           ", ".join(sorted(k for k, v in claims.items() if len(v) == 1)))
 
+    from night import findings_of
+    pairs, keys = findings_of(night)
+    texts = night.get("findings", {})
+    print("\nFindings (what C finds when two lines are compared):")
+    for key in keys:
+        n = sum(1 for k in pairs.values() if k == key)
+        print("  %-16s %d pair%s%s" % (key, n, "" if n == 1 else "s",
+                                       "" if key in texts else "   ** NO TEXT in findings **"))
+        if key in texts:
+            text_bytes += sum(len(t) + 1 for t in texts[key])
+
     p = night.get("parade")
     if p:
         assert p["accused"] in night["people"], p["accused"]
