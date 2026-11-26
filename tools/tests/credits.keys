@@ -1,0 +1,7 @@
+# Script chunks (v0.5): C on the title loads the credits chunk; SPACE
+# there loads the title chunk again.
+frames 260
+60 C
+shot 120
+140 SPACE
+shot 220

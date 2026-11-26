@@ -32,9 +32,25 @@ is128:  ld a,10h            ; bank 0 at C000h, 48 BASIC ROM
         xor a
         ld (border),a
         out (254),a
-game:   ld hl,title
-        call run            ; the scripts jump between themselves
+game:   xor a               ; chunk 0: the title
+        call loadchunk
+        call run            ; the scripts LOAD one another
         jr game
+
+loadchunk:                  ; unpack script chunk A to SBUF; HL = SBUF
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,chunktab
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ld de,SBUF
+        call dzx0_standard
+        ld hl,SBUF
+        ret
 
 ; ---- Z set if this is a 128K (bank 1 is separate RAM at C000h) ----
 detect128:
@@ -66,7 +82,7 @@ detect128:
 ;  The script interpreter. HL = script. Each handler takes its
 ;  arguments from (HL), leaves HL after them and jumps to run.
 ; ============================================================
-NOPS    EQU 12
+NOPS    EQU 13
 
 run:    ld a,(hl)
         inc hl
@@ -91,7 +107,7 @@ run_bad:
 
 optab:  dw op_end,op_cls,op_pic,op_text,op_type,op_wait
         dw op_pause,op_border,op_clrrows,op_jump,op_choice
-        dw op_night
+        dw op_night,op_load
 
 op_end: ret
 
@@ -102,11 +118,17 @@ op_cls: ld a,(hl)           ; attr
         pop hl
         jp run
 
-op_pic: ld e,(hl)           ; dw ZX0 picture
-        inc hl
-        ld d,(hl)
+op_pic: ld a,(hl)           ; db picture number (pictab: ZX0 screens)
         inc hl
         push hl
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,pictab
+        add hl,de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
         push de
         ld hl,ATTR          ; hide the screen while it is unpacked;
         ld de,ATTR+1        ; the colours come last and show it at once
@@ -213,10 +235,17 @@ opc_go: ld e,(hl)
         ex de,hl
         jp run
 
-op_night:                   ; the night's screens (night.asm), until X
-        push hl
+op_night:                   ; db chunk: the night's screens (night.asm),
+        ld a,(hl)           ; until X; then that chunk, as the night's
+        push af             ; text has been unpacked over this one
         call night
-        pop hl
+        pop af
+        call loadchunk
+        jp run
+
+op_load:                    ; db chunk: unpack it and run it from the start
+        ld a,(hl)
+        call loadchunk
         jp run
 
 ; ============================================================
@@ -532,7 +561,7 @@ attrbase: dw ATTR
         INCLUDE "night.asm"
         INCLUDE "dzx0_standard.asm"
         INCLUDE "font.inc"
-        INCLUDE "script.inc"
+        INCLUDE "scripts.inc"       ; the script chunks, ZX0 (build.py)
         INCLUDE "pics.inc"
         INCLUDE "nightsym.inc"      ; the night's labels, at NBUF (build.py)
 nightz: INCBIN "night.zx0"          ; the night's text, ZX0, unpacked by `night`

@@ -1,7 +1,10 @@
 src/*.bin
 src/*.sym
 src/font.inc
-src/script.inc
+src/chunk*.inc
+src/chunks.txt
+src/chunkblob.*
+src/scripts.inc
 src/pics.inc
 tools/zx0/zx0
 __pycache__/

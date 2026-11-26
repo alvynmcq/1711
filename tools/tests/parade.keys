@@ -2,8 +2,9 @@
 # (2 changes "how she comes"). The scene: the fit, Kate's own words, what
 # the clerk sees. The record: the Mayor's words, then three lines,
 # N (left out: plain white, a dash), Y, Y. Then the book (the Mayor's
-# words under their heading) and X on the hub, N, then X, Y: the end card.
-frames 2400
+# words under their heading) and X on the hub, N, then X, Y: the end card, then
+# the credits and the title (v0.5: the script chunks loaded in turn).
+frames 2260
 every 60 40 26 SPACE
 1140 K
 1180 2
@@ -21,4 +22,7 @@ every 60 40 26 SPACE
 1740 N
 1780 X
 1820 Y
-shot 1210 1250 1300 1370 1470 1610 1730 1770 1810 1900
+1940 SPACE
+2020 SPACE
+2140 SPACE
+shot 1210 1250 1300 1370 1470 1610 1730 1770 1810 1900 1990 2100 2220
