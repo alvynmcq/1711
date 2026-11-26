@@ -196,6 +196,7 @@ rm_r1:  ld hl,mk_n
         call drawmark
         ld hl,msg_unmark
         call status
+        call ckeys
         jp rd_key
 rm_add: ld a,(mk_n)
         cp 2
@@ -225,7 +226,27 @@ rm_a2:  ld e,a
         jr nz,rm_a3
         ld hl,msg_mark2
 rm_a3:  call status
+        call ckeys
         jp rd_key
+
+ckeys:                      ; "C  compare" in the key help: flashing bright
+        ld a,(mk_n)         ; white once two lines are marked (v0.6: the
+        cp 2                ; play-test missed the message) and there is
+        ld a,05h            ; candle left to compare by; else as drawn
+        jr nz,ck1
+        ld a,(cdl)
+        or a
+        ld a,05h
+        jr z,ck1
+        ld a,0C7h
+ck1:    ld hl,(attrbase)
+        ld de,23*32+1       ; row 23, cells 1-8
+        add hl,de
+        ld b,8
+ck2:    ld (hl),a
+        inc hl
+        djnz ck2
+        ret
 
 rd_comp:
         ld a,(mk_n)
@@ -352,6 +373,7 @@ drawpage:
         call strat
 dp_0:   ld hl,rd_keys
         call textlist
+        call ckeys
         xor a
         ld (dp_i),a
         ld a,ROW0
@@ -1295,7 +1317,7 @@ pg_d2:      db "1",0
 msg_mark1:  db 20,1,TXT,"Marked. Mark a second line to set",0
             db 21,1,TXT,"beside it, here or in another statement.",0
             db 0FFh
-msg_mark2:  db 20,1,TXT,"Two lines marked. C compares them.",0
+msg_mark2:  db 20,1,47h,"Two lines marked. C compares them.",0
             db 0FFh
 msg_two:    db 20,1,TXT,"Two lines are marked already. C compares",0
             db 21,1,TXT,"them; M on a marked line takes it off.",0

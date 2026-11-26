@@ -124,7 +124,7 @@ NIGHT = {
             "where": ("How far", [
                 ("room",  "Into the room",
                           "You have her brought into the room where Isobel lies."),
-                ("door",  "No further than the house door",
+                ("door",  "Only to the house door",
                           "You have her kept at the house door.")]),
         },
         "always": "As soon as Kate comes to the house, Isobel's pains seize her, with a great "

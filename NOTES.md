@@ -103,6 +103,17 @@ get a "needs a 128K" message.
   clerk, mouth level, tired. Not a monster, not a saint. 367 bytes packed.
   The Night One card's text moved down 4 rows (title row 13).
 
+### From the first play-test (v0.6)
+
+- The tester marked the two knot lines but may not have seen "Two lines
+  marked. C compares them." (row 20, the same yellow as the statement).
+  Now it is bright white, and `ckeys` makes "C  compare" in the key help
+  flash bright white while two lines are marked and there is candle left
+  (plain again when the candle is out, so it never invites a compare that
+  can't happen). Called after the page's key help is drawn and after M.
+- The parade option "No further than the house door" is now "Only to the
+  house door", leaving columns 22-31 clear for Kate's portrait.
+
 ## Build
 
 Python 3 with Pillow, `pasmo`, a C compiler (`cc`, builds tools/zx0 once).
@@ -263,9 +274,8 @@ Willson -> John Wilson, Donaldson -> Hugh Gilmour.
    night's finding flags, about 16 bytes a night, after its buffer goes).
 3. Portraits (Isobel first), hand-checked for the "human, not monstrous"
    rule: the accused's scars are never the scary part. Isobel on the
-   Night One card under way (v0.6); next Kate Rankin on the parade's
-   arranging screen (cols 22-31, rows 6-17: "No further than the house
-   door" runs to column 24 and needs shortening).
+   Night One card done (v0.6); next Kate Rankin on the parade's
+   arranging screen (cols 22-31, rows 6-17; the long option is shortened).
    Decided (26 Nov, from play-testing): the clerk is never told how many
    findings there are, or that he has found them all. Not knowing what he
    missed is the clerk's position; the book is the only record.
@@ -298,6 +308,10 @@ Willson -> John Wilson, Donaldson -> Hugh Gilmour.
 4. Banks and the boot stub; AY music (a slow theme, a church-bell tone).
 
 ## Testing
+
+v0.6: apron.keys also shoots frame 1400, just after the second mark (the
+bright message, "C  compare" lit); the candle test shows it plain once the
+candle is out; the parade's arranging screen has the shorter option.
 
 v0.5: candle.keys compares two lines of Dickey's statement 16 times
 (nothing found), shows the 16th burning the last of it, then C refused
