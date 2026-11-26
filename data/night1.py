@@ -21,6 +21,9 @@ NIGHT = {
     "n": 1,
     "date": "3rd March 1711",
     "place": "Braehead House, Islandmagee",
+    # one candle for the night (v0.5): each compare burns 1, writing a
+    # finding out burns 2 more; at most 16 (it is drawn a pixel a unit)
+    "candle": 16,
 
     # -------------------------------------------------------------
     # Statements. A line is plain text, or (text, claim, value).

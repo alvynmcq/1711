@@ -13,7 +13,8 @@ it is used.
 ## What v0.5 has
 
 v0.5: the scripts (title, prologue, credits) are packed with ZX0 in
-chunks, like the night's text (see The script engine). Otherwise as v0.4:
+chunks, like the night's text (see The script engine), and the candle
+(below). Otherwise as v0.4:
 
 
 Title, the prologue (Sept 1710 to 3 March 1711: the haunting, the boy at
@@ -57,6 +58,18 @@ get a "needs a 128K" message.
   ("spoken", v0.4). The book shows the fit under "In Mayor Ellis's words:"
   in bright white (v0.4), then the lines written, after the findings, and
   runs on to another page when it is full.
+- **The candle** (v0.5): one a night (`candle` in the night data, 1-16;
+  Night One 16). C burns 1; Y on a finding burns 2 more (never below 0);
+  the parade and reading cost nothing. Drawn in the top right corner
+  (column 31, pixel rows 0-23) on the hub, the reader and the compare
+  screen: a dish, a pixel of wax a unit, a 5-pixel flame (its cell bright
+  yellow). When a compare uses the last of it the compare screen says "The
+  candle has burnt down to nothing."; after that C says the candle is out
+  (reading by the fire goes on). The night card says "You have one candle
+  for the night."; the hub's help says C burns candle and writing burns
+  more. "page 1 of 2" moved to column 22 to leave the corner free.
+  Night One: all four findings written cost 12, leaving 4 compares that
+  find nothing (nightcheck.py prints this).
 - **The index of names** (v0.4): each accused has an ordinary detail
   (invented, not from the records: flax and eggs, mending nets, a daughter
   who walked to the minister's), the name in white, the detail indented in
@@ -163,6 +176,7 @@ moonlight.
   finding with no text, or text for a finding that can't happen. Findings
   say what was sworn; they never say who lied, or that anyone was a witch.
 - **people**: the clerk's index of names for the night.
+- **candle** (v0.5): the night's candle in units, 1-16 (see above).
 
 scripts/night.py works out everything the Z80 would find awkward: it wraps
 each clause to 40 characters (column 1 on), cuts statements into pages of
@@ -180,8 +194,8 @@ accused says, typed after the fit every time.
 
 ## Memory plan
 
-The code stays below C000h. v0.5: code 6000h-93A0h (12.9 KB), then 4.6 KB
-free, then the night buffer A600h-BFFFh (the script buffer B400h-BFFFh
+The code stays below C000h. v0.5: code 6000h-9522h (13.3 KB; the candle
+is about 380 bytes with its state), then 4.2 KB free, then the night buffer A600h-BFFFh (the script buffer B400h-BFFFh
 lies inside it): Night One's text and tables, 6.4
 KB unpacked, kept in the code as 2.9 KB of ZX0 (was 6.4 KB unpacked in the
 code at v0.3). The buffer moves to a bank with the boot stub. Nights' text and pictures go
@@ -214,7 +228,8 @@ Willson -> John Wilson, Donaldson -> Hugh Gilmour.
    Why: comparing was free (Night One: 30 lines, 435 pairs, 9 that mean
    anything) and Y was always the best answer. The verdict never changes
    (they are convicted, as in 1711); what changes is what Lyle can say and
-   what the record shows was there to be seen. Stage 1, the candle, now;
+   what the record shows was there to be seen. Stage 1, the candle, done
+   in v0.5;
    stage 2, the trial and Lyle's argument, once there are banks (keep each
    night's finding flags, about 16 bytes a night, after its buffer goes).
 3. Portraits (Isobel first), hand-checked for the "human, not monstrous"
@@ -223,7 +238,10 @@ Willson -> John Wilson, Donaldson -> Hugh Gilmour.
 
 ## Testing
 
-v0.5: the prologue test needs one more SPACE (the press that begins no
+v0.5: candle.keys compares two lines of Dickey's statement 16 times
+(nothing found), shows the 16th burning the last of it, then C refused
+("The candle is out"), then the hub with the dish alone. The prologue
+test needs one more SPACE (the press that begins no
 longer skips page 1's typing; every page is the same screen as before,
 one press later). New test credits.keys (C on the title, the credits,
 back to the title); parade.keys goes on from the end card to the credits

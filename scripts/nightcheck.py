@@ -108,6 +108,9 @@ def main(n):
         text_bytes += sum(len(o[1]) + len(o[2]) + 2 for _, os_ in p["choices"].values() for o in os_)
 
     text_bytes += sum(len(v) + 1 for v in night["people"].values())
+    print("\nCandle: %d (a compare burns 1, writing a finding out 2 more; all %d"
+          " findings written: %d, leaving %d for compares that find nothing)"
+          % (night["candle"], len(keys), 3 * len(keys), night["candle"] - 3 * len(keys)))
     print("\nText this night: %d bytes uncompressed (a 16K bank holds about %d nights like it)"
           % (text_bytes, 16384 // max(1, text_bytes)))
 

@@ -110,6 +110,7 @@ PROLOGUE = [
     ("text", 15, 2, YEL, "Mayor Ellis sits in the parlour. One by"),
     ("text", 16, 2, YEL, "one they come in and swear, and you"),
     ("text", 17, 2, YEL, "write down what they say."),
+    ("text", 19, 2, BWHT, "You have one candle for the night."),
     ("wait",),
     ("night",),
     ("cls", WHT),

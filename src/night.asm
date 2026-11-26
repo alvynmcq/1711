@@ -9,6 +9,10 @@
 ;    M       mark or unmark a line   C       compare two marked lines
 ;    B       the clerk's book        X       back to the statements
 ;
+;  The candle (v0.5): one a night (NIGHT_CANDLE units). C burns 1,
+;  writing a finding out burns 2 more; at 0 nothing more can be
+;  compared. Drawn in the top right corner, a pixel of wax a unit.
+;
 ;  Parade (K on the hub, once a night): 1-3 change how the accused is
 ;  brought, SPACE sends for her, then the scene, then what goes in the
 ;  book: the fit always (the Mayor's words), each other line Y or N.
@@ -25,6 +29,9 @@ night:  ld hl,nightz         ; unpack the night's text and tables (ZX0)
         ld (mk_n),a
         ld (par_done),a
         ld (par_wr),a
+        ld a,NIGHT_CANDLE
+        ld (cdl),a
+        xor a
         ld hl,night_fflag
         ld b,NIGHT_NF
 nt0:    ld (hl),a
@@ -73,6 +80,7 @@ drawhub:
         ld hl,night_hub
         call textlist
         call unveil
+        call candle
         ld a,(mk_n)         ; a mark beside each statement with a marked line
         or a
         ret z
@@ -226,7 +234,15 @@ rd_comp:
         ld hl,msg_need2
         call status
         jp rd_key
-rc_1:   call compare
+rc_1:   ld a,(cdl)          ; the candle: none left, no compare
+        or a
+        jr nz,rc_2
+        ld hl,msg_dark
+        call status
+        jp rd_key
+rc_2:   dec a
+        ld (cdl),a
+        call compare
         jp rd_redraw
 
 rd_book:
@@ -331,7 +347,7 @@ drawpage:
         add a,'1'
         ld (pg_d1),a
         ld hl,pg_s
-        ld bc,0117h
+        ld bc,0116h         ; (col 22: col 31 of rows 0-2 is the candle)
         ld a,05h
         call strat
 dp_0:   ld hl,rd_keys
@@ -373,6 +389,7 @@ dp_l:   ld a,(dp_i)
         inc (hl)
         jr dp_l
 dp_e:   call unveil
+        call candle
         call hl_on
         ld a,(mk_n)         ; the marks on this page
         or a
@@ -565,6 +582,7 @@ cm_fnd: ld (cm_f),a
         ld a,07h
         call drawclause
         call unveil
+        call candle
         jp cm_space
 
 cm_yes: call cm_find        ; HL -> seen, book
@@ -575,6 +593,7 @@ cm_yes: call cm_find        ; HL -> seen, book
         ld a,47h
         call drawclause
         call unveil
+        call candle
         call cm_flag
         ld a,(hl)
         cp 2
@@ -612,6 +631,12 @@ cm_k:   call waitkey
         call drawclause
         xor a
         ld (typing),a
+        ld a,(cdl)          ; writing it out burns 2 more (not below 0)
+        sub 2
+        jr nc,cm_w1
+        xor a
+cm_w1:  ld (cdl),a
+        call candle
         jr cm_space
 cm_no:  call cm_flag        ; N: found, but left out
         ld (hl),1
@@ -621,7 +646,12 @@ cm_no:  call cm_flag        ; N: found, but left out
         ld hl,msg_leave
         call textlist
 cm_space:
-        ld hl,prompt
+        ld a,(cdl)          ; it went out during this compare (there was
+        or a                ; candle when it began)
+        jr nz,cm_sp1
+        ld hl,msg_out
+        call textlist
+cm_sp1: ld hl,prompt
         call textat
         jp waitspace
 
@@ -1154,13 +1184,91 @@ drawmark:                   ; char A in column 0 of row B, in red
         pop af
         jp putch
 
+; ---- the candle, top right: column 31, pixel rows 0-23 ----
+;  a dish at row 22, (cdl) pixels of wax above it, a flame above that
+candle: ld hl,cdl_buf
+        ld b,24
+cn0:    ld (hl),0
+        inc hl
+        djnz cn0
+        ld a,7Eh            ; the dish
+        ld (cdl_buf+22),a
+        ld a,(cdl)
+        or a
+        jr z,cn_draw        ; burnt out: the dish only
+        ld b,a
+        ld a,22
+        sub b               ; A = the top of the wax
+        ld c,a
+        ld e,a
+        ld d,0
+        ld hl,cdl_buf
+        add hl,de
+cn1:    ld (hl),3Ch         ; wax
+        inc hl
+        djnz cn1
+        ld a,c
+        sub 5
+        ld e,a
+        ld hl,cdl_buf
+        add hl,de
+        ex de,hl
+        ld hl,cn_flame
+        ld bc,5
+        ldir
+cn_draw:
+        ld hl,cdl_buf       ; three cells of column 31, rows 0-2
+        ld de,401Fh
+        ld c,3
+cn2:    ld b,8
+        push de
+cn3:    ld a,(hl)
+        ld (de),a
+        inc hl
+        inc d
+        djnz cn3
+        pop de
+        ld a,e
+        add a,32
+        ld e,a
+        dec c
+        jr nz,cn2
+        ld hl,581Fh         ; colours: bright yellow where the flame is
+        ld b,3
+        ld c,0              ; C = the pixel row of this cell
+cn4:    ld (hl),07h
+        ld a,(cdl)
+        or a
+        jr z,cn5
+        ld d,a
+        ld a,17             ; the flame's top row: 22 - cdl - 5
+        sub d               ; its rows: A to A+4
+        add a,4
+        cp c                ; flame bottom < cell top: not in this cell
+        jr c,cn5
+        sub 4
+        ld d,a
+        ld a,c
+        add a,7
+        cp d                ; cell bottom < flame top: not in this cell
+        jr c,cn5
+        ld (hl),46h
+cn5:    ld de,32
+        add hl,de
+        ld a,c
+        add a,8
+        ld c,a
+        djnz cn4
+        ret
+cn_flame:   db 10h,18h,38h,38h,10h
+
 status:                     ; a message (textlist) in rows 20-21
         push hl
         ld a,20
         ld c,2
         call clrrows
         pop hl
-        jr textlist
+        jp textlist
 
 waitkey:                    ; let go of every key, then A = the next one
         call release
@@ -1217,6 +1325,11 @@ msg_write:  db 18,1,07h,"You write:",0
 msg_leave:  db 19,1,TXT,"You leave it out of the book.",0
             db 20,1,TXT,"Mayor Ellis does not ask what you found.",0
             db 0FFh
+msg_dark:   db 20,1,TXT,"The candle is out. By the fire you can",0
+            db 21,1,TXT,"still read, but not compare.",0
+            db 0FFh
+msg_out:    db 22,1,47h,"The candle has burnt down to nothing.",0
+            db 0FFh
 msg_empty:  db 3,1,TXT,"Nothing is written in it yet.",0
             db 0FFh
 
@@ -1255,5 +1368,7 @@ pa_n:       db 0
 pa_bit:     db 0
 pa_sm:      db 0
 pa_rm:      db 0
+cdl:        db 0            ; the candle: units left this night
+cdl_buf:    ds 24           ; its column of pixels, top to bottom
 night_fflag: ds 16          ; per finding: 0 not found, 1 left out, 2 written
 abuf:       ds 768          ; colours of a screen being drawn (veil)
