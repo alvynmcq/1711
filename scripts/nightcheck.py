@@ -4,7 +4,9 @@
   python3 scripts/nightcheck.py 1
 
 Checks the shape of the data and that every line fits the screen once
-wrapped, then lists the contradictions (same claim, different values),
+wrapped, then lists the contradictions (same claim, different values), warns
+about any claim made in one statement only (it can never be compared:
+give it a second statement or make it a plain line),
 the copied statements, the parade's combinations, and the size of the
 text, so we can see how much a night costs in memory before writing
 any engine code for it.
@@ -70,8 +72,13 @@ def main(n):
                 found += 1
     if not found:
         print("  (none)")
-    print("\nClaims made once only (no conflict yet):",
-          ", ".join(sorted(k for k, v in claims.items() if len(v) == 1)))
+    # a copied statement repeats its original's claims, so count the
+    # statements whose own words make the claim
+    once = sorted(k for k, v in claims.items()
+                  if len({by_id[s].get("copy_of", s) for s, _ in v}) == 1)
+    for k in once:
+        print("\nWARNING: claim %r appears in one statement only (%s): give it a "
+              "second statement or make it a plain line" % (k, claims[k][0][0]))
 
     from night import findings_of
     pairs, keys = findings_of(night)
@@ -96,6 +103,7 @@ def main(n):
             rec = [r for cond, r in p["record"] if all(pick[k] == v for k, v in cond.items())]
             print("  %-18s -> %s" % (" ".join(combo), " / ".join(rec) or "(nothing extra)"))
         text_bytes += len(p["intro"]) + len(p["always"]) + len(p["fit"]) + 1
+        text_bytes += len(p.get("spoken", "")) + 1
         text_bytes += sum(len(r) + 1 for _, r in p["record"] + p.get("seen", []))
         text_bytes += sum(len(o[1]) + len(o[2]) + 2 for _, os_ in p["choices"].values() for o in os_)
 

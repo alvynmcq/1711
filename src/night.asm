@@ -18,7 +18,10 @@ SEL     EQU 47h             ; bright white: the line the clerk is on
 MARKA   EQU 42h             ; bright red: the clerk's mark in the margin
 ROW0    EQU 3               ; first row of statement text
 
-night:  xor a               ; a fresh night: no marks, nothing found
+night:  ld hl,nightz         ; unpack the night's text and tables (ZX0)
+        ld de,NBUF
+        call dzx0_standard
+        xor a               ; a fresh night: no marks, nothing found
         ld (mk_n),a
         ld (par_done),a
         ld (par_wr),a
@@ -30,8 +33,19 @@ nt0:    ld (hl),a
 hub:    call drawhub
 hub_k:  call waitkey
         cp 'X'
+        jr nz,hub_0
+        ld hl,msg_endq      ; X: ask before the night is over
+        call status
+hub_x:  call waitkey
+        cp 'Y'
         ret z
-        cp 'B'
+        cp 'N'
+        jr nz,hub_x
+        ld a,20
+        ld c,2
+        call clrrows
+        jr hub_k
+hub_0:  cp 'B'
         jr nz,hub_1
         call book
         jr hub
@@ -695,8 +709,19 @@ bk2:    ld hl,bk_i
 bk3:    ld a,(par_done)     ; then the parade: the fit, and what else he wrote
         or a
         jr z,bk3b
+        ld hl,par_fit       ; the Mayor's words, under a heading, bright
+        ld a,(hl)
+        inc a
+        call bk_room
+        ld hl,txt_mayor
+        ld c,1
+        ld a,07h
+        call strat
+        inc b
         ld hl,par_fit
-        call bk_block
+        ld a,47h
+        call drawclause
+        inc b
         ld a,(par_wr)
         ld (pa_m),a
         xor a
@@ -732,10 +757,22 @@ bk4:    call unveil
 
 bk_block:                   ; block HL at row B, a new page if it won't fit
         ld a,(hl)
+        push hl
+        call bk_room
+        pop hl
+        ld a,TXT
+        call drawclause
+        inc b
+        ret
+
+bk_room:                    ; A lines are to go at row B: a new page if they won't fit
+        ld c,a
+        ld a,1              ; the book is not empty
+        ld (bk_n),a
+        ld a,c
         add a,b
         cp 22
-        jr c,bb1
-        push hl
+        ret c
         call unveil
         ld hl,prompt
         call textat
@@ -743,13 +780,7 @@ bk_block:                   ; block HL at row B, a new page if it won't fit
         call veil
         ld hl,night_book
         call textlist
-        pop hl
         ld b,3
-bb1:    ld a,TXT
-        call drawclause
-        inc b
-        ld a,1
-        ld (bk_n),a
         ret
 
 ; ---- the parade ----
@@ -924,6 +955,10 @@ sc2:    inc b
         ld a,47h
         call drawclause
         inc b
+        ld hl,par_spoken    ; what she says, in her own words
+        ld a,07h
+        call drawclause
+        inc b
         ld a,(pa_sm)
         ld (pa_m),a
         xor a
@@ -968,9 +1003,7 @@ sn3:    xor a
         ld hl,pr_more
         ld c,1
         ld a,07h
-        push bc
-        call strat          ; (text drawing uses B)
-        pop bc
+        call strat
         inc b
         ld a,(pa_rm)
         ld (pa_m),a
@@ -997,8 +1030,8 @@ rc1:    ld a,(pa_m)
         call textlist
 rc_k:   call waitkey
         cp 'N'
-        ld e,01h            ; left out: dim blue, no mark
-        ld d,' '
+        ld e,07h            ; left out: plain white, a dash in the margin
+        ld d,'-'
         jr z,rc2
         cp 'Y'
         jp nz,rc_k
@@ -1059,17 +1092,21 @@ veil:                       ; blank the screen; text drawn now stays hidden
         ld (attrbase),hl
         ret
 
-unveil:                     ; show everything drawn since veil, at once
+unveil:                     ; show everything drawn since veil, at once (keeps BC)
+        push bc
         ld hl,abuf
         ld de,ATTR
         ld bc,768
         ldir
         ld hl,ATTR
         ld (attrbase),hl
+        pop bc
         ret
 
-drawclause:                 ; HL = block (db lines, strings), row B, attr A; B after
-        ld (c_attr),a
+drawclause:                 ; HL = block (db lines, strings), row B, attr A
+        ld (c_attr),a       ; B after = the row below it; C kept
+        ld a,c
+        ld (dc_c),a
         ld c,(hl)
         inc hl
 dcl1:   ld a,b
@@ -1082,14 +1119,19 @@ dcl1:   ld a,b
         inc b
         dec c
         jr nz,dcl1
+        ld a,(dc_c)
+        ld c,a
         ret
 
-strat:  ld (c_attr),a       ; string HL at row B, column C, attr A
+strat:  ld (c_attr),a       ; string HL at row B, column C, attr A (keeps BC)
         ld a,b
         ld (c_row),a
         ld a,c
         ld (c_col),a
-        jp textraw
+        push bc
+        call textraw
+        pop bc
+        ret
 
 textlist:                   ; textat records until 0FFh
         ld a,(hl)
@@ -1159,6 +1201,10 @@ pr_hdr:     db 0,1,46h,"For the clerk's book",0
             db 2,1,07h,"Mayor Ellis gives you the words:",0
             db 0FFh
 pr_more:    db "What else you saw, you may write:",0
+txt_mayor:  db "In Mayor Ellis's words:",0
+msg_endq:   db 20,1,47h,"End the night?  Y  yes    N  not yet",0
+            db 21,1,TXT,"Mayor Ellis will take the book with him.",0
+            db 0FFh
 cm_title:   db 0,1,46h,"Two lines set side by side",0
             db 0FFh
 msg_yn:     db 21,1,47h,"Y  Write it in the clerk's book",0
@@ -1182,6 +1228,7 @@ pg_first:   db 0
 pg_cnt:     db 0
 pg_row:     ds 16
 pg_len:     ds 16
+dc_c:       db 0
 dp_i:       db 0
 dp_r:       db 0
 mk_n:       db 0            ; marks: up to two (statement, clause)

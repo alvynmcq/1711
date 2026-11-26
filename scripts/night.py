@@ -131,6 +131,7 @@ def compile_parade(night):
       par_opt         dw menu string, per choice, per option (2 each)
       par_scene       dw scene block, the same order
       par_always      block: the fit, every time
+      par_spoken      block: what the accused says, every time
       par_seen, par_rec   dw blocks
       par_fit         block: what the Mayor gives the clerk to write
       par_combo       per arrangement (bit i = option of choice i):
@@ -170,6 +171,7 @@ def compile_parade(night):
             out += ["po_%d_%d:" % (i, j), asm_str(menu)]
             out += block("ps_%d_%d" % (i, j), scene, 3)
     out += block("par_always", p["always"], 4)
+    out += block("par_spoken", p["spoken"], 3)
     out.append("par_seen: dw " + ",".join("pn_%d" % i for i in range(len(seen))) if seen else "par_seen:")
     for i, (_, t) in enumerate(seen):
         out += block("pn_%d" % i, t, 3)
@@ -187,6 +189,7 @@ def compile_parade(night):
         rows = 2 + sum(len(wrap(p["choices"][k][1][(combo >> i) & 1][2], WIDTH))
                        for i, k in enumerate(names))
         rows += 1 + len(wrap(p["always"], WIDTH)) + 1
+        rows += len(wrap(p["spoken"], WIDTH)) + 1
         rows += sum(len(wrap(seen[i][1], WIDTH)) + 1 for i in sm)
         assert rows <= 22, "parade scene %d runs to row %d" % (combo, rows)
         # the record screen: the fit from row 3, a blank, a heading, the lines
@@ -241,9 +244,17 @@ def compile_night(n):
     out += textrec(0, 1, BYEL, "Names taken down this night")
     row = 2
     for who in night["people"].values():
-        for k, ln in enumerate(wrap(who, WIDTH - 2)):
+        # "Name, of Place, accused. An ordinary detail." -> the name in white,
+        # the detail under it, indented, in yellow
+        head, _, detail = who.partition(". ")
+        if not detail:
+            head = who
+        ws = [(1 if k == 0 else 2, WHT, ln)
+              for k, ln in enumerate(wrap(head + ("." if detail else ""), WIDTH))]
+        ws += [(2, YEL, ln) for ln in wrap(detail, WIDTH - 2)]
+        for col, attr, ln in ws:
             assert row <= 21, "too many names for one page"
-            out += textrec(row, 1 if k == 0 else 2, WHT if k == 0 else YEL, ln)
+            out += textrec(row, col, attr, ln)
             row += 1
     out.append("        db 0FFh")
 

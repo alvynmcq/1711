@@ -6,3 +6,7 @@ src/pics.inc
 tools/zx0/zx0
 __pycache__/
 src/night.inc
+src/nightblob.*
+src/nightsym.inc
+src/night.zx0
+tools/out/

@@ -10,6 +10,11 @@ CC BY 4.0, with every name changed (see scripts/story.py for the list):
   lowry    <- the narrative (the apron, five knots)
   wylie_m  <- Tisdall's account of the trial (the apron, nine knots)
   gordon   <- the narrative (Janet Carson sent for by the minister)
+
+Every statement is shown as sworn on 3 March: the credits say that dates
+and order are compressed (Gilmour's is really from 5 March; Lowry's,
+Margaret Wylie's and Gordon's come from accounts, not that night's
+depositions). Claims appear only where two statements really give them.
 """
 
 NIGHT = {
@@ -30,14 +35,12 @@ NIGHT = {
              "with evil spirits, as he is credibly informed.",
              "That Isobel Halliday, being now in the said house, is tormented both day "
              "and night by witches.",
-             ("That by the description she gave of them, they sent for Janet Boyd and "
-              "Bessie Shaw on Friday last.", "boyd_shaw_test", "friday"),
+             "That by the description she gave of them, they sent for Janet Boyd and "
+             "Bessie Shaw on Friday last.",
              "That when they came into the room she fell into a violent fit, and said "
              "that as soon as she saw them she was stung to the heart.",
-             ("That a great many other women were present when she challenged them.",
-              "boyd_shaw_alone", "no"),
-             ("That she never saw them in her lifetime before her trouble.",
-              "boyd_shaw_known", "never"),
+             "That a great many other women were present when she challenged them.",
+             "That she never saw them in her lifetime before her trouble.",
          ]},
         {"id": "wilson", "who": "John Wilson, of Islandmagee", "sworn": "3rd March",
          "copy_of": "dickey"},      # the same words exactly: the engine shows the copy
@@ -46,27 +49,26 @@ NIGHT = {
          "lines": [
              "Saith that on the 28th of February he was in the house and saw Miss "
              "Halliday fall into fits as if she had been dead.",
-             ("That in one fit she said 'So and so', and after told them a woman came "
-              "to the bedside and asked her, 'Molly Halliday, how do you do?'",
-              "first_words", "molly"),
+             "That in one fit she said 'So and so', and after told them a woman came "
+             "to the bedside and asked her, 'Molly Halliday, how do you do?'",
              "That she gave the marks of one Janet Boyd, whom she had never seen.",
-             ("That she heard her tormentors name one another: Janet Moore, Katty, "
-              "Janet Kerr, and one McAlexander.", "names_heard", "moore_katty_kerr_mcalexander"),
+             "That she heard her tormentors name one another: Janet Moore, Katty, "
+             "Janet Kerr, and one McAlexander.",
              ("That Janet Moore was sent for about the first instant, and no one in "
               "the house knew of her coming.", "moore_expected", "no"),
-             ("That about thirty other women were brought into the room severally, "
-              "and she was not disturbed in the least.", "thirty_women", "untroubled"),
+             "That about thirty other women were brought into the room severally, "
+             "and she was not disturbed in the least.",
          ]},
         {"id": "lowry", "who": "Margaret Lowry, servant", "sworn": "3rd March",
          "lines": [
              "Saith that on the night of the 27th of February a new mantua and head "
              "clothes were taken from a trunk and scattered through the house.",
              ("That she found on the parlour floor an apron that had lain two days "
-              "in a locked room.", "apron_where", "parlour"),
+              "in a locked room.", "apron_found_by", "lowry"),
              ("That it was rolled close and tied hard with five strange knots.",
               "apron_knots", "5"),
              "That none would loose the knots until Miss Halliday offered to.",
-             ("That inside was a flannel cap of the late Mrs Wylie's.", "apron_inside", "cap"),
+             "That inside was a flannel cap of the late Mrs Wylie's.",
          ]},
         {"id": "wylie_m", "who": "Margaret Wylie, sister of Hugh Wylie", "sworn": "3rd March",
          "lines": [
@@ -131,6 +133,9 @@ NIGHT = {
             ({"crowd": "among", "where": "room"},
              "Kate is the youngest of the six, and the only one with her mother's face."),
         ],
+        # what Kate herself says, after the fit, every time
+        "spoken": "Kate, when they let her go: 'I left my wheel to come. May I go "
+                  "home to my mother now?'",
         "fit": "Kate Rankin was brought, and Isobel fell into fits and said, "
                "'That is one of them.'",
         "record": [   # (conditions, what the clerk may write)
@@ -164,6 +169,11 @@ NIGHT = {
             "Mr Gordon saith he sent for her himself, and went down before her.",
             "Mr Gordon himself sent for Janet Moore, and sat with Miss Halliday "
             "before she came. Gilmour saith none knew."),
+        "apron_found_by": (
+            "Margaret Lowry saith she found the apron herself. Margaret Wylie "
+            "saith Miss Halliday was the first who found it.",
+            "Of the apron: Margaret Lowry saith she found it; Margaret Wylie "
+            "saith Miss Halliday found it first."),
         "copy:wilson": (
             "Line for line, John Wilson swears the same words as William Dickey.",
             "John Wilson's statement agreeth with William Dickey's, word for word."),
@@ -172,11 +182,15 @@ NIGHT = {
     # people named this night, for the clerk's index (game names)
     "people": {
         "isobel": "Isobel Halliday, 18, of Castlereagh, the afflicted",
-        "boyd":   "Janet Boyd, of Islandmagee, accused",
-        "shaw":   "Bessie Shaw, of Islandmagee, accused",
-        "moore":  "Janet Moore, of Islandmagee, accused",
-        "kate":   "Kate Rankin, daughter of Janet Boyd",
-        "kerr":   "Janet Kerr, of Ballycarry: named",
-        "mcalexander": "McAlexander: named, never sent for",
+        # each accused gets an ordinary detail (invented, not from the records)
+        "boyd":   "Janet Boyd, of Islandmagee, accused. Spins flax, and sells eggs at "
+                  "Carrickfergus on market days.",
+        "shaw":   "Bessie Shaw, of Islandmagee, accused. William Shaw's wife; she mends "
+                  "nets with him in the winter.",
+        "moore":  "Janet Moore, of Islandmagee, accused. Her daughter walked to the "
+                  "minister's for her.",
+        "kate":   "Kate Rankin, daughter of Janet Boyd. Brought from her spinning wheel.",
+        "kerr":   "Janet Kerr, of Ballycarry: named. Sends her butter to Larne.",
+        "mcalexander": "McAlexander: named, never sent for. No one gives a first name.",
     },
 }

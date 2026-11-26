@@ -1,5 +1,5 @@
 ; ============================================================
-;  1711  (working title) - v0.3 slice: title, prologue, Night One
+;  1711  (working title) - v0.4 slice: title, prologue, Night One
 ;  statements and parade, credits
 ;  ZX Spectrum 128K. pasmo syntax. Loaded at 6000h by the BASIC
 ;  loader (CLEAR 24575). Everything here stays below C000h, so
@@ -534,5 +534,6 @@ attrbase: dw ATTR
         INCLUDE "font.inc"
         INCLUDE "script.inc"
         INCLUDE "pics.inc"
-        INCLUDE "night.inc"
+        INCLUDE "nightsym.inc"      ; the night's labels, at NBUF (build.py)
+nightz: INCBIN "night.zx0"          ; the night's text, ZX0, unpacked by `night`
 END_OF_CODE:
