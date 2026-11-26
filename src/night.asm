@@ -882,7 +882,12 @@ pa_o:   ld a,c
         pop bc
         inc c
         jr pa_o
-pa_od:  call unveil
+pa_od:  ld a,(par_port)      ; the accused's face, cols 22-31, rows 6-17
+        cp 0FFh             ; (drawn while veiled: shown with the rest)
+        jr z,pa_od2
+        ld bc,6*256+22
+        call portrait
+pa_od2: call unveil
         ld c,0
 pa_m1:  ld a,c
         cp PAR_NC

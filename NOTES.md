@@ -12,10 +12,11 @@ it is used.
 
 ## What v0.7 has
 
-v0.7: the banks and the boot stub (see Memory plan). Nothing on screen
-changes: every test screen is the same, pixel for pixel. The code below
-C000h goes from 14.2 KB to 6.2 KB, with 18 KB free there for Nights Two
-and Three and the trial.
+v0.7: the banks and the boot stub (see Memory plan). Moving into banks
+changed nothing on screen: every test screen stayed the same, pixel for
+pixel. The code below C000h went from 14.2 KB to 6.2 KB, with 18 KB free
+there for Nights Two and Three and the trial. Then Kate Rankin's portrait
+on the parade's arranging screen (see Portraits).
 
 ## What v0.5 has
 
@@ -109,6 +110,18 @@ get a "needs a 128K" message.
   (never a ring: no halo), red bodice, white neckerchief; she looks at the
   clerk, mouth level, tired. Not a monster, not a saint. 367 bytes packed.
   The Night One card's text moved down 4 rows (title row 13).
+- Kate Rankin (v0.7), on the parade's arranging screen, rows 6-17, columns
+  22-31, drawn while the screen is veiled so she appears with it. Janet
+  Boyd's daughter, fetched from her wheel: a plain linen kerchief, a grey
+  woollen shawl, a glimpse of a brown-red bodice. The light comes cold from
+  the right (the door), the other side from Isobel's candle, and the
+  kerchief fades out on the dark side so it never rings her face. Rounder
+  and younger; her eyes are down and aside, not on the clerk. Ordinary.
+  278 bytes packed, in bank 3 with Night One.
+- Which portrait a parade shows: night.py writes `par_port` (the
+  accused's place in art/portraits.py's list, 0FFh for none) into the
+  night data; night.asm draws it. A new night's accused only needs a
+  portrait of the same name and a bank in PORT_BANK.
 
 ### From the first play-test (v0.6)
 
@@ -152,7 +165,7 @@ C000h or a bank runs into PSCR or the IM2 table, and prints what's free.
 Tape: BASIC loader (CLEAR 24575), loading screen (the house), code at
 6000h, then a headerless block per bank (bank 1, bank 3), each packed with
 ZX0 when that saves room (bank 1's contents are packed already, so it goes
-raw; bank 3 goes packed, 2942 bytes for 6452).
+raw; bank 3 goes packed, 3222 bytes for 6731).
 
 ## Files
 
@@ -257,11 +270,11 @@ and the IM2 table in each bank.
 | Where | What |
 |---|---|
 | 5B00h-5BFFh | The stack, once IM2 is on (BASIC's done with) |
-| 6000h-7821h | The code: engine, night screens, ZX0 decoder, font, tables, variables, abuf (6178 bytes) |
-| 7822h-BFFFh | Free: 18398 bytes, for Nights Two and Three's screens and the trial |
+| 6000h-7831h | The code: engine, night screens, ZX0 decoder, font, tables, variables, abuf (6194 bytes) |
+| 7832h-BFFFh | Free: 18382 bytes, for Nights Two and Three's screens and the trial |
 | C000h, bank 0 | Nothing yet but the IM2 table (the AY player, later) |
 | bank 1 | SBUF C000h-CC0Ch, chunks, pictures, Isobel; ends E06Eh, 5970 free under PSCR |
-| bank 3 | Night One C000h-D933h; 9417 free (Kate goes here, with PSCR) |
+| bank 3 | Night One C000h-D934h, Kate to DA4Ah; 7541 free under PSCR |
 | banks 4, 6, 7 | Night Two, Night Three, the trial (each with its portraits); free now |
 | F7C0h-FBF7h | PSCR, the portrait scratch, in any bank that holds a portrait |
 | FDFDh-FF00h | The IM2 jump (JP isr) and table, in banks 0, 1, 3, 4, 6, 7 |
@@ -317,8 +330,8 @@ Willson -> John Wilson, Donaldson -> Hugh Gilmour.
    night's finding flags, about 16 bytes a night, after its buffer goes).
 3. Portraits (Isobel first), hand-checked for the "human, not monstrous"
    rule: the accused's scars are never the scary part. Isobel on the
-   Night One card done (v0.6); next Kate Rankin on the parade's
-   arranging screen (cols 22-31, rows 6-17; the long option is shortened).
+   Night One card done (v0.6); Kate Rankin on the parade's arranging
+   screen done (v0.7).
    Decided (26 Nov, from play-testing): the clerk is never told how many
    findings there are, or that he has found them all. Not knowing what he
    missed is the clerk's position; the book is the only record.
@@ -354,7 +367,8 @@ Willson -> John Wilson, Donaldson -> Hugh Gilmour.
 
 ## Testing
 
-v0.7: keytest's snapshot is taken at `game` (after the stub has loaded the
+v0.7: parade.keys' arranging screen (frame 1210) now has Kate's portrait
+(reference updated after looking at it). keytest's snapshot is taken at `game` (after the stub has loaded the
 banks and IM2 is on), not at 6000h; every reference screen is unchanged.
 Checked by hand: a tape with bank 3's block corrupted stops at "Tape
 loading error."; a 48K still stops at "needs a 128K".

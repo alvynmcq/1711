@@ -129,6 +129,8 @@ def compile_parade(night):
     of the 2^choices arrangements which "seen" and "record" lines apply.
 
       par_screen      textlist: title, intro, choice headings, keys
+      par_port        db the accused's portrait (art/portraits.py order),
+                      0FFh if there is none; drawn at rows 6-17, cols 22-31
       par_opt         dw menu string, per choice, per option (2 each)
       par_scene       dw scene block, the same order
       par_always      block: the fit, every time
@@ -147,7 +149,10 @@ def compile_parade(night):
         assert len(p["choices"][k][1]) == 2, "a choice has two options (1-3 toggle them)"
     seen, rec = p.get("seen", []), p["record"]
     assert len(seen) <= 8 and len(rec) <= 8
-    out = ["PAR_NC  EQU %d" % len(names), "par_screen:"]
+    from portraits import PORTRAITS
+    ports = [nm for nm, _ in PORTRAITS]
+    port = ports.index(p["accused"]) if p["accused"] in ports else 0xFF
+    out = ["PAR_NC  EQU %d" % len(names), "par_port: db %d" % port, "par_screen:"]
     out += textrec(0, 1, BYEL, who + " is sent for")
     intro = wrap(p["intro"], WIDTH)
     assert len(intro) <= 4

@@ -10,6 +10,11 @@ then cut out as a block: 96 pixel rows of 10 bytes (top to bottom), then
   isobel : Isobel Halliday, 18, by candlelight on the night the clerk
            first sees her. Well bred, a stranger to the island; drawn as a
            young woman, tired and watchful. Not a monster, not a saint.
+  kate   : Kate Rankin, Janet Boyd's daughter, a spinner, fetched from her
+           wheel (v0.7). The light comes cold from the right (the door she
+           is brought through), the other side from Isobel's candle. A plain
+           linen kerchief, a grey woollen shawl; younger and rounder in the
+           face; she looks down and away, not at the clerk. Ordinary.
 
 Writes art/<name>.bin (the raw block) and art/<name>.png (preview, x4).
 """
@@ -147,6 +152,72 @@ def isobel():
     return p
 
 
+def kate():
+    c = Canvas()
+    R = lambda x, lo, hi, g=0.8: side(x, 80, 0, lo, hi, g)   # lit from the right
+    # the shawl, grey wool, pulled round the shoulders and crossed in front
+    c.poly([(0, 96), (2, 84), (14, 72), (30, 66), (50, 66), (66, 72), (79, 82), (79, 96)],
+           lambda x, y: R(x, 0.05, 0.50, 1.4), WHITE)
+    c.line([(22, 74), (34, 86), (40, 96)], 0.02, 1.0)                # where it crosses
+    c.line([(60, 72), (50, 84), (46, 96)], 0.30, 0.8)
+    c.line([(12, 82), (18, 92)], 0.02, 0.6)                          # a fold in the dark
+    # a glimpse of the bodice where the shawl parts, plain brown-red
+    c.poly([(34, 66), (48, 66), (44, 78), (38, 78)], lambda x, y: R(x, 0.05, 0.35), RED)
+    # neck
+    c.poly([(34, 54), (47, 54), (47, 67), (34, 67)],
+           lambda x, y: side(x, 47, 34, 0.0, 0.6, 1.2) * (0.4 if y < 61 else 0.8), YELLOW)
+    # the kerchief, linen tied at the nape: lit on the right, the left side
+    # lost in the dark, so it never makes a ring round the face
+    c.poly([(19, 40), (18, 24), (24, 12), (36, 6), (48, 7), (58, 14), (62, 26), (62, 42),
+            (58, 54), (55, 44), (55, 30), (50, 21), (40, 18), (30, 21), (25, 30), (24, 44)],
+           lambda x, y: R(x, 0.0, 1.0, 1.0) * min(1.0, max(0.0, (x - 34) / 14.0)), WHITE)
+    c.line([(26, 22), (34, 16), (46, 15), (56, 22)], 0.4, 0.8)         # its edge over the brow
+    c.line([(52, 9), (58, 20)], 0.5, 0.6)                             # a fold
+    # the face, rounder, turned a little to her right (our left), away from the light
+    face = [(26, 30), (30, 22), (40, 19), (50, 21), (55, 29), (56, 38), (54, 47), (50, 54),
+            (44, 58), (38, 58), (32, 54), (28, 47), (26, 39)]
+
+    def face_lum(x, y):
+        v = side(x, 58, 26, 0.38, 1.0, 1.0)
+        if x < 31:
+            v *= 0.75                                    # the far cheek, in shadow
+        if y > 53:
+            v *= 0.8
+        return v
+    c.poly(face, face_lum, YELLOW)
+    c.poly([(44, 19), (57, 22), (57, 50), (46, 58)], None, YELLOW + BR)   # lit side bright
+    # hair at the brow, light brown, a loose strand on the lit side
+    c.poly([(27, 30), (30, 23), (40, 21), (50, 22), (55, 29), (55, 33), (50, 26), (41, 25),
+            (33, 26), (28, 31)], lambda x, y: R(x, 0.0, 0.5, 1.2))
+    c.line([(54, 30), (56, 38), (55, 46)], 0.35, 0.6)
+    c.ellipse((30, 34, 37, 39), 0.5)                     # the eyes, lowered
+    c.ellipse((43, 34, 50, 39), 0.75)
+    c.ellipse((46, 42, 54, 49), 0.9)                     # the near cheek
+    c.poly([(42, 36), (40, 44), (42, 47)], 0.9)          # light down the nose
+    p = c.to_pic(1711)
+    # The features a pixel at a time. Her eyes are down and to the side:
+    # she has been sent for, and doesn't know why it is her.
+    px = p.lum.load()
+
+    def put(pts, v):
+        for (x, y) in pts:
+            px[x, y] = int(v * 255)
+    put([(x, 32) for x in range(31, 36)], 0.25)                            # brows, raised a
+    put([(x, 31) for x in range(44, 50)] + [(43, 32), (50, 32)], 0.5)       # little: worried
+    put([(x, 36) for x in range(43, 50)], 0.0)                             # near eye: a lid,
+    put([(x, 37) for x in range(43, 50)], 0.75)                            # lowered
+    put([(44, 37), (45, 37)], 0.0)                                         # looking down, aside
+    put([(x, 36) for x in range(31, 36)], 0.0)                             # far eye
+    put([(31, 37), (32, 37)], 0.0)
+    put([(x, 38) for x in range(43, 49)], 0.5)                             # lower lid
+    put([(40, y) for y in range(38, 45)], 0.5)                              # nose shadow
+    put([(39, 46), (42, 46)], 0.0)                                         # nostrils
+    put([(x, 51) for x in range(37, 44)], 0.0)                             # the mouth, closed,
+    put([(36, 52), (44, 51)], 0.5)                                         # pressed a little
+    put([(x, 52) for x in range(38, 44)], 0.75)
+    return p
+
+
 def block(p):
     """Cut the portrait out of a rendered screen: pixels row by row, then
     attributes row by row."""
@@ -160,7 +231,7 @@ def block(p):
     return bytes(out), scr
 
 
-PORTRAITS = [("isobel", isobel)]
+PORTRAITS = [("isobel", isobel), ("kate", kate)]
 
 if __name__ == "__main__":
     import zx0
