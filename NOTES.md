@@ -269,6 +269,32 @@ Willson -> John Wilson, Donaldson -> Hugh Gilmour.
    Decided (26 Nov, from play-testing): the clerk is never told how many
    findings there are, or that he has found them all. Not knowing what he
    missed is the clerk's position; the book is the only record.
+   Stage 2 decided (26 Nov), keeping it a game: the verdict is fixed, so
+   the player's choices must be felt during play, with a cost, and the
+   payoff must differ between playthroughs.
+   - Three nights, then the trial (scope: a finishable 128K game).
+   - The Mayor's patience, a second pressure beside the candle: writing
+     findings that hurt his case wears it down; at nothing he takes the
+     pen and a deputy writes the rest of the nights (a thinner record at
+     the trial). Write everything and be dismissed, or keep quiet and stay.
+     Never shown as a number (the wife's rule: the clerk isn't told);
+     shown through the Mayor's manner. Tuning to be play-tested.
+   - The trial is played: Carrickfergus, 31 March 1711. The court sits
+     from six till two (MacSkimin: six in the morning till two in the
+     afternoon), and that is the trial's clock, as the candle is the
+     night's. The clerk is called with his book; Lyle (Upton) can raise
+     only what was written; each point costs court time; Ormsby
+     (Macartney) answers each with the reasoning of the day. The jury
+     convicts. What changes is how close Lyle comes and what the record
+     holds.
+   - After the verdict: the sentence (a year's imprisonment and four times
+     in the pillory, where the crowd pelted them), then the end.
+   - The reveal: the game says roughly how much was missed without saying
+     what (a line by proportion, in period voice: most of what was there to
+     be seen is in the record / much is not / almost none of it), never a
+     count or the findings themselves. Draft lines to be shown first.
+   Build order: banks; the patience in Night One; Nights Two and Three
+   (with portraits); the trial; the end.
 4. Banks and the boot stub; AY music (a slow theme, a church-bell tone).
 
 ## Testing
