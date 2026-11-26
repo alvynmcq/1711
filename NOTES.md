@@ -266,6 +266,9 @@ Willson -> John Wilson, Donaldson -> Hugh Gilmour.
    Night One card under way (v0.6); next Kate Rankin on the parade's
    arranging screen (cols 22-31, rows 6-17: "No further than the house
    door" runs to column 24 and needs shortening).
+   Decided (26 Nov, from play-testing): the clerk is never told how many
+   findings there are, or that he has found them all. Not knowing what he
+   missed is the clerk's position; the book is the only record.
 4. Banks and the boot stub; AY music (a slow theme, a church-bell tone).
 
 ## Testing
