@@ -92,25 +92,55 @@ NIGHT = {
 
     # -------------------------------------------------------------
     # The parade: the clerk arranges how the accused is brought.
-    # Each choice is a list of options; every combination is allowed.
-    # The record always shows the fit (that is what was sworn). What
-    # changes is what the clerk can honestly write down.
+    # Each choice is (heading, options); every combination is allowed.
+    # An option is (name, menu text, the sentence the scene uses).
+    # The fit always happens (that is what was sworn), and "fit" is
+    # always written: the Mayor gives the clerk those words. What changes
+    # is what else the clerk saw, and what he can honestly add ("record",
+    # each one Y or N). "seen" lines are what the clerk notices in the
+    # house; they keep an ordinary explanation in view, so the parade
+    # never reads as Isobel knowing anything she could not have known.
     # -------------------------------------------------------------
     "parade": {
         "accused": "kate",
         "intro": "Isobel has heard her tormentors call one of them Katty. Mayor Ellis "
                  "sends for Kate Rankin, Janet Boyd's daughter. You are to arrange it.",
         "choices": {
-            "warn":   [("tell", "Tell Isobel who is coming"), ("quiet", "Tell no one in the house")],
-            "crowd":  [("alone", "Bring Kate alone"), ("among", "Bring her among six women")],
-            "where":  [("room", "Into the room"), ("door", "No further than the house door")],
+            "warn":  ("Before she comes", [
+                ("tell",  "Tell Isobel who is coming",
+                          "Isobel is told that Kate Rankin, Janet Boyd's daughter, is coming."),
+                ("quiet", "Tell no one in the house",
+                          "You tell no one in the house who is sent for.")]),
+            "crowd": ("How she comes", [
+                ("alone", "Bring Kate alone",
+                          "Kate comes alone."),
+                ("among", "Bring her among six women",
+                          "Kate comes among six women of the island.")]),
+            "where": ("How far", [
+                ("room",  "Into the room",
+                          "You have her brought into the room where Isobel lies."),
+                ("door",  "No further than the house door",
+                          "You have her kept at the house door.")]),
         },
-        "always": "As soon as Kate enters the house, Isobel's pains seize her, with a great "
+        "always": "As soon as Kate comes to the house, Isobel's pains seize her, with a great "
                   "sweat. Three people cannot hold her. 'That is one of them.'",
+        "seen": [   # (conditions, what the clerk notices)
+            ({"warn": "quiet", "where": "door"},
+             "Before Kate reaches the door her name is spoken in the hall. The house "
+             "is full of neighbours, and voices carry."),
+            ({"crowd": "among", "where": "room"},
+             "Kate is the youngest of the six, and the only one with her mother's face."),
+        ],
+        "fit": "Kate Rankin was brought, and Isobel fell into fits and said, "
+               "'That is one of them.'",
         "record": [   # (conditions, what the clerk may write)
             ({"warn": "tell"}, "She was told beforehand who was coming."),
             ({"warn": "quiet", "where": "door"}, "Kate was unseen by her, at the house door only."),
+            ({"warn": "quiet", "where": "door"},
+             "Her name was spoken in the hall before Kate reached the door."),
             ({"crowd": "among", "where": "room"}, "She singled Kate out from among six women."),
+            ({"crowd": "among", "where": "room"},
+             "Kate was the youngest of the six, and like her mother."),
             ({"crowd": "alone", "where": "room"}, "Kate was brought to her alone."),
         ],
     },

@@ -13,7 +13,7 @@ follow that account; every person's name has been changed:
 """
 from script import BLK, YEL, BYEL, WHT, BWHT, RED, BRED, CYN
 
-VERSION = "v0.2 slice"
+VERSION = "v0.3 slice"
 
 TITLE = [
     ("cls", WHT),
@@ -104,9 +104,9 @@ PROLOGUE = [
     ("wait",),
     ("night",),
     ("cls", WHT),
-    ("story", YEL, "The rest of Night One is not in this build yet. Next: "
-                   "Kate Rankin is sent for, and you are to arrange how she "
-                   "is brought before Isobel."),
+    ("story", YEL, "Night One ends. Mayor Ellis takes the book with him to "
+                   "Carrickfergus. This build goes no further: the next nights "
+                   "are still to come."),
     ("wait",),
     ("jump", "credits"),
 ]

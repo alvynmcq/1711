@@ -1,6 +1,6 @@
 ; ============================================================
-;  1711  (working title) - v0.2 slice: title, prologue, Night One
-;  statements, credits
+;  1711  (working title) - v0.3 slice: title, prologue, Night One
+;  statements and parade, credits
 ;  ZX Spectrum 128K. pasmo syntax. Loaded at 6000h by the BASIC
 ;  loader (CLEAR 24575). Everything here stays below C000h, so
 ;  later versions can page story and picture banks in at C000h.

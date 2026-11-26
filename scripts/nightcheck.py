@@ -88,14 +88,16 @@ def main(n):
     if p:
         assert p["accused"] in night["people"], p["accused"]
         names = list(p["choices"])
+        opts = [[o[0] for o in p["choices"][k][1]] for k in names]
         print("\nParade (%s): %d ways to arrange it" % (
-            p["accused"], len(list(itertools.product(*p["choices"].values())))))
-        for combo in itertools.product(*[[o[0] for o in p["choices"][k]] for k in names]):
+            p["accused"], len(list(itertools.product(*opts)))))
+        for combo in itertools.product(*opts):
             pick = dict(zip(names, combo))
             rec = [r for cond, r in p["record"] if all(pick[k] == v for k, v in cond.items())]
-            print("  %-28s -> %s" % (" ".join(combo), " / ".join(rec) or "(nothing extra)"))
-        text_bytes += len(p["intro"]) + len(p["always"]) + sum(len(r) + 1 for _, r in p["record"])
-        text_bytes += sum(len(o[1]) + 1 for opts in p["choices"].values() for o in opts)
+            print("  %-18s -> %s" % (" ".join(combo), " / ".join(rec) or "(nothing extra)"))
+        text_bytes += len(p["intro"]) + len(p["always"]) + len(p["fit"]) + 1
+        text_bytes += sum(len(r) + 1 for _, r in p["record"] + p.get("seen", []))
+        text_bytes += sum(len(o[1]) + len(o[2]) + 2 for _, os_ in p["choices"].values() for o in os_)
 
     text_bytes += sum(len(v) + 1 for v in night["people"].values())
     print("\nText this night: %d bytes uncompressed (a 16K bank holds about %d nights like it)"

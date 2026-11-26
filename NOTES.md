@@ -1,4 +1,4 @@
-# 1711 (working title): project notes, v0.2 slice
+# 1711 (working title): project notes, v0.3 slice
 
 A ZX Spectrum 128K game. You are the clerk to Mayor Ellis of Carrickfergus,
 taking sworn statements at Braehead House, Islandmagee, in March 1711, as a
@@ -10,18 +10,18 @@ Based on the trial documents edited by Andrew Sneddon and Shannon Devlin
 w1711 graphic novel (CC BY-NC-ND) was read for research only: nothing from
 it is used.
 
-## What v0.2 has
+## What v0.3 has
 
 Title, the prologue (Sept 1710 to 3 March 1711: the haunting, the boy at
 the window, the grave, Agnes Wylie's death, Isobel's arrival, the apron),
-the Night One card, Night One's statements (below), a "not in this build
-yet" card for the parade, credits with the CC BY attribution. 48K machines
+the Night One card, Night One's statements and Kate Rankin's parade
+(below), an end card, credits with the CC BY attribution. 48K machines
 get a "needs a 128K" message.
 
 ### Night One's statements (v0.2)
 
 - **Hub**: the six statements (keys 1-6), B the clerk's book, K the parade
-  (not built yet: says so), X ends the night. A red mark beside a statement
+  (once a night; after that it says she has been brought), X ends the night. A red mark beside a statement
   means a line in it is marked.
 - **Statement reader**: who and when sworn, the statement a clause at a
   time (rows 3-19, "page 1 of 2" when it runs over). Q/A move a line (and
@@ -37,6 +37,15 @@ get a "needs a 128K" message.
 - **The clerk's book**: what was written down, nothing else (what was found
   and left out is kept, flag 1, for the indictment later), then a page of
   the names taken down this night.
+- **The parade** (v0.3): the arranging screen shows the intro and three
+  choices, each with two options (1-3 toggle; the chosen one bright with
+  a red mark). SPACE sends for her, X backs out. The scene is typed: a
+  sentence per choice, the fit (always, bright), then anything the clerk
+  notices ("seen"). Then the record: the fit is written whatever happens,
+  because the Mayor gives the words; each other line that applies is
+  shown and the clerk presses Y (bright, marked, written) or N (dim blue,
+  left out). The book shows the fit and the lines written, after the
+  findings, and runs on to another page when it is full.
 - Every screen is drawn hidden and shown at once (`veil`/`unveil`: text
   colours go to a 768-byte copy while drawing), about 20 frames a page.
 
@@ -92,7 +101,12 @@ moonlight.
   with `copy_of` repeats another word for word, as two of the real
   depositions do ("agreeth with the above, word for word"); the game
   should let the clerk notice that.
-- **parade**: the accused, an intro, and choices the clerk makes about how
+- **parade** (format changed in v0.3: each choice is (heading, options),
+  each option (name, menu text, scene sentence); "fit" is the line the
+  Mayor gives; "seen" lines are what the clerk notices, which keep an
+  ordinary explanation in view; night.py works out, for each of the 2^n
+  arrangements, which seen and record lines apply, and checks the scene
+  and record screens fit): the accused, an intro, and choices the clerk makes about how
   she is brought (tell Isobel or not, alone or among others, into the room
   or only to the door). `always` is what happens whatever you choose (the
   fit, as sworn). `record` lists what the clerk can honestly write down
@@ -118,7 +132,7 @@ Janet Moore was coming), 1 copied statement, 8 parade arrangements.
 
 ## Memory plan
 
-The code stays below C000h (9.6 KB free at v0.2; Night One's text,
+The code stays below C000h (7.4 KB free at v0.3; Night One's text,
 about 4 KB with the findings, is in main memory for now and moves to a bank
 with the boot stub). Nights' text and pictures go
 in banks 1, 3, 4, 6 and 7, loaded from the tape like Night Porter's extras
@@ -141,7 +155,8 @@ Willson -> John Wilson, Donaldson -> Hugh Gilmour.
 
 ## Next
 
-1. The parade screen for Kate Rankin and its record (K on the hub).
+1. Pack each night's text with ZX0 (Night One 4.0 KB -> 1.8 KB; the
+   prologue's 3.0 KB -> 1.8 KB), unpacked into a buffer when needed.
 2. Whether comparing costs anything (the Mayor's patience, candles), so
    the clerk can't simply try every pair.
 3. Portraits (Isobel first), hand-checked for the "human, not monstrous"
@@ -150,6 +165,14 @@ Willson -> John Wilson, Donaldson -> Hugh Gilmour.
 
 ## Testing
 
+v0.3: the parade, from the hub: tell/among/room (scene, three lines,
+N then Y), quiet/among/door (both door lines written, the book), a whole
+night with all three findings and three parade lines written (the book
+runs on to a second page), K a second time, X to the end card. Two bugs
+found and fixed this way: the SPACE that sends for her was still held and
+skipped the typed scene (now `release` first), and text drawing clobbers
+B (push/pop around `strat`, and around `unveil`, whose LDIR zeroes BC).
+
 v0.2: as below, plus three key scripts from the hub (tools/simtest.py,
 keys every 40 frames): the apron (Lowry line 3 against Margaret Wylie line
 1, written in, then the book and the names); Dickey against Wilson (the
@@ -157,7 +180,7 @@ copy, left out), Gilmour against Gordon (Janet Moore, written in), paging,
 Q over the page edge, C with no marks, a third mark, a pair with no
 bearing, the book holding only the Moore entry, X to the end card; K on
 the hub, unmarking, and comparing a pair already in the book. Screens in
-docs/v02_screens.png.
+docs/v02_screens.png and docs/v03_parade.png.
 
 v0.1: SkoolKit tap2sna (real ROM loader, 48K and 128K) + tools/simtest.py:
 the 48K message; on 128K title -> whole prologue (13 SPACE presses) ->

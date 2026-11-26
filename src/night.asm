@@ -8,6 +8,10 @@
 ;    Q / A   up / down a line        O / P   page back / on
 ;    M       mark or unmark a line   C       compare two marked lines
 ;    B       the clerk's book        X       back to the statements
+;
+;  Parade (K on the hub, once a night): 1-3 change how the accused is
+;  brought, SPACE sends for her, then the scene, then what goes in the
+;  book: the fit always (the Mayor's words), each other line Y or N.
 ; ============================================================
 TXT     EQU 06h             ; yellow: statement text
 SEL     EQU 47h             ; bright white: the line the clerk is on
@@ -16,6 +20,8 @@ ROW0    EQU 3               ; first row of statement text
 
 night:  xor a               ; a fresh night: no marks, nothing found
         ld (mk_n),a
+        ld (par_done),a
+        ld (par_wr),a
         ld hl,night_fflag
         ld b,NIGHT_NF
 nt0:    ld (hl),a
@@ -31,7 +37,12 @@ hub_k:  call waitkey
         jr hub
 hub_1:  cp 'K'
         jr nz,hub_2
-        ld hl,msg_parade
+        ld a,(par_done)
+        or a
+        jr nz,hub_1b
+        call parade
+        jr hub
+hub_1b: ld hl,msg_brought
         call status
         jr hub_k
 hub_2:  sub '1'
@@ -677,13 +688,32 @@ bk1:    ld a,(bk_i)
         inc hl
         ld d,(hl)
         ex de,hl
-        ld a,TXT
-        call drawclause
-        inc b
+        call bk_block
 bk2:    ld hl,bk_i
         inc (hl)
         jr bk1
-bk3:    ld a,(bk_n)
+bk3:    ld a,(par_done)     ; then the parade: the fit, and what else he wrote
+        or a
+        jr z,bk3b
+        ld hl,par_fit
+        call bk_block
+        ld a,(par_wr)
+        ld (pa_m),a
+        xor a
+        ld (pa_i),a
+bkp1:   ld a,(pa_m)
+        or a
+        jr z,bk3b
+        srl a
+        ld (pa_m),a
+        jr nc,bkp2
+        ld hl,par_rec
+        call pa_get
+        call bk_block
+bkp2:   ld hl,pa_i
+        inc (hl)
+        jr bkp1
+bk3b:   ld a,(bk_n)
         or a
         jr nz,bk4
         ld hl,msg_empty
@@ -699,6 +729,322 @@ bk4:    call unveil
         ld hl,prompt
         call textat
         jp waitspace
+
+bk_block:                   ; block HL at row B, a new page if it won't fit
+        ld a,(hl)
+        add a,b
+        cp 22
+        jr c,bb1
+        push hl
+        call unveil
+        ld hl,prompt
+        call textat
+        call waitspace
+        call veil
+        ld hl,night_book
+        call textlist
+        pop hl
+        ld b,3
+bb1:    ld a,TXT
+        call drawclause
+        inc b
+        ld a,1
+        ld (bk_n),a
+        ret
+
+; ---- the parade ----
+parade: xor a
+        ld (par_sel),a
+        ld (par_sel+1),a
+        ld (par_sel+2),a
+        call veil
+        ld hl,par_screen
+        call textlist
+        ld c,0              ; each choice's two options, at rows 8+4i, 9+4i
+pa_o:   ld a,c
+        cp PAR_NC
+        jr nc,pa_od
+        push bc
+        ld a,c
+        add a,a
+        add a,a
+        ld (pa_r),a
+        add a,8
+        ld b,a
+        ld a,(pa_r)
+        ld e,a
+        ld d,0
+        ld hl,par_opt
+        add hl,de
+        push hl
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        push bc
+        ld c,2
+        ld a,07h
+        call strat
+        pop bc
+        pop hl
+        inc hl
+        inc hl
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        inc b
+        ld c,2
+        ld a,07h
+        call strat
+        pop bc
+        inc c
+        jr pa_o
+pa_od:  call unveil
+        ld c,0
+pa_m1:  ld a,c
+        cp PAR_NC
+        jr nc,pa_k
+        push bc
+        call pa_show
+        pop bc
+        inc c
+        jr pa_m1
+pa_k:   call waitkey
+        cp 'X'
+        ret z
+        cp ' '
+        jr z,pa_go
+        sub '1'
+        jr c,pa_k
+        cp PAR_NC
+        jr nc,pa_k
+        ld c,a
+        ld b,0
+        ld hl,par_sel
+        add hl,bc
+        ld a,(hl)
+        xor 1
+        ld (hl),a
+        call pa_show
+        jr pa_k
+
+pa_show:                    ; choice C: the chosen option bright, with a mark
+        ld a,c
+        add a,a
+        add a,a
+        add a,8
+        ld (pa_r),a
+        ld hl,par_sel
+        ld b,0
+        add hl,bc
+        ld a,(hl)
+        ld (pa_s),a
+        xor a
+        call pa_row
+        ld a,1
+pa_row: ld e,a              ; option A of the choice in pa_r / pa_s
+        ld a,(pa_r)
+        add a,e
+        ld b,a
+        ld a,(pa_s)
+        cp e
+        ld a,07h
+        ld d,' '
+        jr nz,pr1
+        ld a,47h
+        ld d,'*'
+pr1:    push de
+        push bc
+        ld c,1
+        call setattr
+        pop bc
+        pop de
+        ld a,d
+        jp drawmark
+
+pa_go:  ld a,(par_sel+2)    ; the arrangement: bit i = option of choice i
+        add a,a
+        ld b,a
+        ld a,(par_sel+1)
+        or b
+        add a,a
+        ld b,a
+        ld a,(par_sel)
+        or b
+        add a,a
+        ld e,a
+        ld d,0
+        ld hl,par_combo
+        add hl,de
+        ld a,(hl)
+        ld (pa_sm),a
+        inc hl
+        ld a,(hl)
+        ld (pa_rm),a
+        ld a,1
+        ld (par_done),a
+
+        call release        ; or the SPACE still held would skip the typing
+        ld a,07h            ; the scene, typed
+        call clsa
+        ld hl,par_brought
+        call textlist
+        ld a,1
+        ld (typing),a
+        xor a
+        ld (skip),a
+        ld b,2
+        ld c,0
+sc1:    ld a,c
+        cp PAR_NC
+        jr nc,sc2
+        push bc
+        ld e,c
+        ld d,0
+        ld hl,par_sel
+        add hl,de
+        ld a,c
+        add a,a
+        add a,(hl)
+        ld (pa_i),a
+        ld hl,par_scene
+        call pa_get
+        pop bc
+        push bc
+        ld a,TXT
+        call drawclause
+        ld a,b
+        pop bc
+        ld b,a
+        inc c
+        jr sc1
+sc2:    inc b
+        ld hl,par_always
+        ld a,47h
+        call drawclause
+        inc b
+        ld a,(pa_sm)
+        ld (pa_m),a
+        xor a
+        ld (pa_i),a
+sn1:    ld a,(pa_m)
+        or a
+        jr z,sn3
+        srl a
+        ld (pa_m),a
+        jr nc,sn2
+        ld hl,par_seen
+        call pa_get
+        ld a,07h
+        call drawclause
+        inc b
+sn2:    ld hl,pa_i
+        inc (hl)
+        jr sn1
+sn3:    xor a
+        ld (typing),a
+        ld hl,prompt
+        call textat
+        call waitspace
+
+        call veil           ; the record: the Mayor's words, then the rest
+        ld hl,pr_hdr
+        call textlist
+        ld b,3
+        ld hl,par_fit
+        ld a,47h
+        call drawclause
+        ld a,'*'
+        push bc
+        ld b,3
+        call drawmark
+        call unveil
+        pop bc
+        ld a,(pa_rm)
+        or a
+        jp z,rc_end
+        inc b
+        ld hl,pr_more
+        ld c,1
+        ld a,07h
+        push bc
+        call strat          ; (text drawing uses B)
+        pop bc
+        inc b
+        ld a,(pa_rm)
+        ld (pa_m),a
+        xor a
+        ld (pa_i),a
+        inc a
+        ld (pa_bit),a
+rc1:    ld a,(pa_m)
+        or a
+        jp z,rc_end
+        srl a
+        ld (pa_m),a
+        jr nc,rc3
+        ld hl,par_rec
+        call pa_get
+        ld a,(hl)
+        ld (pa_n),a
+        ld a,b
+        ld (pa_r),a
+        ld a,TXT
+        call drawclause
+        push bc
+        ld hl,msg_yn
+        call textlist
+rc_k:   call waitkey
+        cp 'N'
+        ld e,01h            ; left out: dim blue, no mark
+        ld d,' '
+        jr z,rc2
+        cp 'Y'
+        jp nz,rc_k
+        ld a,(pa_bit)
+        ld hl,par_wr
+        or (hl)
+        ld (hl),a
+        ld e,47h
+        ld d,'*'
+rc2:    push de
+        ld a,(pa_r)
+        ld b,a
+        ld a,(pa_n)
+        ld c,a
+        ld a,e
+        call setattr
+        pop de
+        ld a,(pa_r)
+        ld b,a
+        ld a,d
+        call drawmark
+        ld a,21
+        ld c,2
+        call clrrows
+        pop bc
+        inc b
+rc3:    ld hl,pa_i
+        inc (hl)
+        ld hl,pa_bit
+        sla (hl)
+        jp rc1
+rc_end: ld hl,prompt
+        call textat
+        jp waitspace
+
+pa_get:                     ; HL = word pa_i of the table at HL
+        ld a,(pa_i)
+        add a,a
+        ld e,a
+        ld d,0
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ret
 
 ; ---- small helpers ----
 veil:                       ; blank the screen; text drawn now stays hidden
@@ -775,14 +1121,18 @@ status:                     ; a message (textlist) in rows 20-21
         jr textlist
 
 waitkey:                    ; let go of every key, then A = the next one
-wk1:    halt
-        call getkey
-        or a
-        jr nz,wk1
+        call release
 wk2:    halt
         call getkey
         or a
         jr z,wk2
+        ret
+
+release:                    ; wait until no key is held
+        halt
+        call getkey
+        or a
+        jr nz,release
         ret
 
 ; ---- text ----
@@ -805,8 +1155,10 @@ msg_unmark: db 20,1,TXT,"Mark taken off.",0
 msg_need2:  db 20,1,TXT,"Mark two lines first, then C compares",0
             db 21,1,TXT,"them.",0
             db 0FFh
-msg_parade: db 20,1,TXT,"The parade is not in this build yet.",0
+pr_hdr:     db 0,1,46h,"For the clerk's book",0
+            db 2,1,07h,"Mayor Ellis gives you the words:",0
             db 0FFh
+pr_more:    db "What else you saw, you may write:",0
 cm_title:   db 0,1,46h,"Two lines set side by side",0
             db 0FFh
 msg_yn:     db 21,1,47h,"Y  Write it in the clerk's book",0
@@ -845,5 +1197,16 @@ cs_c:       db 0
 cs_r:       db 0
 bk_i:       db 0
 bk_n:       db 0
+par_done:   db 0            ; the parade has been held
+par_wr:     db 0            ; bit i: record line i written
+par_sel:    ds 3            ; option chosen, per choice
+pa_r:       db 0
+pa_s:       db 0
+pa_i:       db 0
+pa_m:       db 0
+pa_n:       db 0
+pa_bit:     db 0
+pa_sm:      db 0
+pa_rm:      db 0
 night_fflag: ds 16          ; per finding: 0 not found, 1 left out, 2 written
 abuf:       ds 768          ; colours of a screen being drawn (veil)
