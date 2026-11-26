@@ -6,6 +6,7 @@ A script is a list of steps run by the engine's `run` (src/main.asm):
 
   ("cls", attr)                    clear the screen to one colour
   ("pic", name)                    unpack art/<name>.scr (ZX0) to the screen
+  ("portrait", name, row, col)     a portrait (art/portraits.py, 10 x 12 cells) at row, col
   ("text", row, col, attr, s)      print s at once (own font, 6 px a char)
   ("type", row, col, attr, s)      print s a letter at a time (SPACE: rest at once)
   ("say", who, s)                  a line of dialogue in the text area:
@@ -39,10 +40,13 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 sys.path.insert(0, os.path.join(ROOT, "art"))
 from font import FONTW  # noqa: E402
 from zx0 import compress  # noqa: E402
+from portraits import PORTRAITS as _P  # noqa: E402
+
+PORTRAITS = [name for name, _ in _P]
 
 # opcodes (must match src/main.asm)
 OP = dict(end=0, cls=1, pic=2, text=3, type=4, wait=5, pause=6, border=7,
-          clrrows=8, jump=9, choice=10, night=11, load=12)
+          clrrows=8, jump=9, choice=10, night=11, load=12, portrait=13)
 
 BLK, YEL, BYEL, WHT, BWHT, RED, BRED, CYN = 0x00, 0x06, 0x46, 0x07, 0x47, 0x02, 0x42, 0x05
 TEXT0 = 15                        # first text row under a picture
@@ -135,6 +139,10 @@ class Compiler:
         elif k == "pic":
             self.db(OP["pic"], self.pics.index(st[1]))
             self.text0 = self.row = TEXT0
+        elif k == "portrait":
+            _, name, row, col = st
+            assert row + 12 <= 24 and col + 10 <= 32, "portrait off the screen"
+            self.db(OP["portrait"], PORTRAITS.index(name), row, col)
         elif k in ("text", "type"):
             _, row, col, attr, s = st
             assert col * 8 + MARGIN + len(s) * FONTW <= 256, "too wide: %r" % s
@@ -223,9 +231,19 @@ def build(scripts, pics):
         lines.append("pic_%s:   ; %d bytes" % (name, len(comp)))
         for k in range(0, len(comp), 24):
             lines.append("        db " + ",".join(str(b) for b in comp[k:k + 24]))
+    ptotal = 0
+    lines.append("porttab: dw " + ",".join("port_%s" % p for p in PORTRAITS))
+    for name in PORTRAITS:
+        data = open(os.path.join(ROOT, "art", name + ".bin"), "rb").read()
+        assert len(data) == 10 * 12 * 9
+        comp = compress(data)
+        ptotal += len(comp)
+        lines.append("port_%s:   ; portrait, %d bytes" % (name, len(comp)))
+        for k in range(0, len(comp), 24):
+            lines.append("        db " + ",".join(str(b) for b in comp[k:k + 24]))
     open(os.path.join(ROOT, "src", "pics.inc"), "w").write("\n".join(lines) + "\n")
-    print("%d script chunks + pics.inc written (pictures %d bytes packed)"
-          % (len(names), total))
+    print("%d script chunks + pics.inc written (pictures %d bytes packed, portraits %d)"
+          % (len(names), total, ptotal))
 
 
 if __name__ == "__main__":

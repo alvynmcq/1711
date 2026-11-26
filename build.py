@@ -4,6 +4,7 @@
 Runs the art and script steps first:
   art/font.py          -> src/font.inc
   art/prologue_art.py  -> art/*.scr
+  art/portraits.py     -> art/*.bin (portraits, 10 x 12 characters)
   scripts/script.py    -> src/chunk*.inc (one per script chunk), src/pics.inc
   scripts/night.py 1   -> src/night.inc (Night One's statements and findings)
 then assembles night.inc on its own at NBUF (as high under C000h as it
@@ -20,7 +21,8 @@ import sys
 ROOT = os.path.dirname(os.path.abspath(__file__))
 ORG = 0x6000
 
-for cmd, cwd in ((["font.py"], "art"), (["prologue_art.py"], "art"), (["script.py"], "scripts"),
+for cmd, cwd in ((["font.py"], "art"), (["prologue_art.py"], "art"),
+                 (["portraits.py"], "art"), (["script.py"], "scripts"),
                  (["night.py", "1"], "scripts")):
     subprocess.run([sys.executable] + cmd, cwd=os.path.join(ROOT, cwd), check=True,
                    stdout=subprocess.DEVNULL)
@@ -77,7 +79,9 @@ subprocess.run(["pasmo", "--bin", "main.asm", "main.bin", "main.sym"], check=Tru
 code = open("main.bin", "rb").read()
 end = ORG + len(code)
 low = min(NBUF, SBUF)
-assert end <= low, "code must stay below the buffers at %04Xh (ends %04Xh)" % (low, end)
+PSCR = 10 * 12 * 9                                   # a portrait, unpacked (main.asm)
+assert end + PSCR <= low, "code + portrait scratch must stay below the buffers at %04Xh (ends %04Xh)" % (
+    low, end + PSCR)
 print("night: %d bytes at %04Xh-BFFFh, %d packed" % (len(blob), NBUF, len(packed)))
 print("scripts: %d chunks at %04Xh, %d bytes, %d packed (%s)" % (
     len(names), SBUF, sum(r for _, r, _ in sizes), sum(z for _, _, z in sizes),
@@ -119,5 +123,5 @@ tap = (header(0, "1711", len(basic), 10, len(basic)) + block(0xFF, basic) +
        header(3, "screen", 6912, 16384, 32768) + block(0xFF, bytes(screen)) +
        header(3, "1711", len(code), ORG, 32768) + block(0xFF, code))
 open(os.path.join(ROOT, "1711.tap"), "wb").write(tap)
-print("1711.tap: %d bytes; code %d bytes, %04Xh-%04Xh (%d free below the buffers)"
-      % (len(tap), len(code), ORG, end - 1, low - end))
+print("1711.tap: %d bytes; code %d bytes, %04Xh-%04Xh, portrait scratch %04Xh (%d free below the buffers)"
+      % (len(tap), len(code), ORG, end - 1, end, low - end - PSCR))

@@ -80,6 +80,29 @@ get a "needs a 128K" message.
   and returns B as the row below the block. Callers no longer push BC
   around them.
 
+### Portraits (v0.6, under way)
+
+- Decided (26 Nov): portraits are 10 x 12 characters (80 x 96 pixels), on
+  the Night One card (Isobel above "NIGHT ONE", the clerk's first sight
+  of her: the prologue is hearsay) and on the parade's arranging screen
+  (the accused, columns 22-31; Kate first, a new face each night). Not
+  on the statement reader (its 40-column text would halve) and not yet on
+  the index of names (a page per person, later, with banks).
+- art/portraits.py draws them: shapes at 4x in greyscale with ink hints,
+  scaled down and quantised to five clean dither patterns (0, 1/4, 1/2,
+  3/4, 1), no grain, then the eyes, nose and mouth set a pixel at a time
+  so the scaling doesn't smear them. Written out as a block: 96 pixel rows
+  of 10 bytes, then 12 rows of 10 colours (1080 bytes), packed by
+  script.py into pics.inc (`porttab`).
+- PORTRAIT n row col (opcode 13; ("portrait", name, row, col) in a script):
+  `portrait` (A, B row, C col) unpacks to PSCR, blacks out the block's
+  colours, copies the pixels, then the colours, so it appears at once;
+  colours go through `attrbase`, so it works on a veiled night screen.
+- Isobel: candle low on the left, a linen coif lost in shadow on the right
+  (never a ring: no halo), red bodice, white neckerchief; she looks at the
+  clerk, mouth level, tired. Not a monster, not a saint. 367 bytes packed.
+  The Night One card's text moved down 4 rows (title row 13).
+
 ## Build
 
 Python 3 with Pillow, `pasmo`, a C compiler (`cc`, builds tools/zx0 once).
@@ -89,12 +112,12 @@ Python 3 with Pillow, `pasmo`, a C compiler (`cc`, builds tools/zx0 once).
 
     python3 tools/keytest.py    # headless key-script tests (SkoolKit)
 
-build.py runs art/font.py, art/prologue_art.py, scripts/script.py and
+build.py runs art/font.py, art/prologue_art.py, art/portraits.py, scripts/script.py and
 scripts/night.py, assembles src/night.inc on its own at NBUF (as high
 under C000h as it fits; A600h for Night One), packs it with ZX0 into
 src/night.zx0 and writes its labels to src/nightsym.inc. Then each script
 chunk (src/chunkN.inc) is assembled on its own at SBUF (as high under
-C000h as the largest fits; B400h in v0.5) and packed into src/scripts.inc
+C000h as the largest fits; B300h in v0.5) and packed into src/scripts.inc
 with the chunk table, and src/main.asm is assembled. `night` unpacks the
 night to NBUF at the start of each night; LOAD unpacks a chunk to SBUF.
 The two buffers overlap: no script runs while a night is unpacked.
@@ -110,6 +133,7 @@ Tape: BASIC loader (CLEAR 24575), loading screen (the house), code at 6000h.
 | scripts/script.py | Compiles scripts to chunks (src/chunkN.inc), packs pictures to src/pics.inc |
 | art/render.py | Picture renderer: greyscale + ink hints -> Spectrum screen |
 | art/prologue_art.py | The three prologue pictures (house, window, grave) |
+| art/portraits.py | Portraits, 10 x 12 characters (Isobel) |
 | art/font.py, art/zx0.py | From Night Porter: the 6-pixel font, the ZX0 wrapper |
 | src/night.asm | The night's screens: hub, statement reader, compare, book |
 | scripts/night.py | Compiles data/nightN.py to src/night.inc |
@@ -127,7 +151,8 @@ frames with a faint tick; SPACE shows the rest of the page), WAIT row
 (flashing SPACE prompt, then clears the text area from that row), PAUSE n,
 BORDER n, CLRROWS row n, JUMP addr, CHOICE n {key, addr}, NIGHT n (the
 night's screens in night.asm, until the clerk presses X, then LOAD n),
-LOAD n (v0.5: unpack chunk n to SBUF and run it from its start).
+LOAD n (v0.5: unpack chunk n to SBUF and run it from its start),
+PORTRAIT n row col (v0.6).
 
 Chunks (v0.5): each script in story.py is a chunk, packed with ZX0. A
 ("night",) step ends its chunk, and the steps after it become the next
@@ -194,15 +219,19 @@ accused says, typed after the fit every time.
 
 ## Memory plan
 
-The code stays below C000h. v0.5: code 6000h-9522h (13.3 KB; the candle
-is about 380 bytes with its state), then 4.2 KB free, then the night buffer A600h-BFFFh (the script buffer B400h-BFFFh
+The code stays below C000h. v0.6: code 6000h-9732h (13.8 KB; the portrait
+routine is about 160 bytes, Isobel 367 packed), then the portrait scratch
+PSCR (1080 bytes, not on the tape), then 2.6 KB free (v0.5: code to 9522h,
+4.2 KB free), then the night buffer A600h-BFFFh (the script buffer B400h-BFFFh
 lies inside it): Night One's text and tables, 6.4
 KB unpacked, kept in the code as 2.9 KB of ZX0 (was 6.4 KB unpacked in the
 code at v0.3). The buffer moves to a bank with the boot stub. Nights' text and pictures go
 in banks 1, 3, 4, 6 and 7, loaded from the tape like Night Porter's extras
 (boot stub, ROM loader, IM2 table in each bank), and are paged in at C000h
 when needed. About 3 KB of text a night uncompressed, so text is not the
-constraint; pictures (portraits, about 2-4 KB each packed) are.
+constraint; pictures are. Portraits pack to about 350-600 bytes each (Isobel 367):
+until there are banks they live in the code (room for three or four
+more), then each night's accused moves to that night's bank.
 
 ## Names (real -> game)
 
@@ -233,7 +262,10 @@ Willson -> John Wilson, Donaldson -> Hugh Gilmour.
    stage 2, the trial and Lyle's argument, once there are banks (keep each
    night's finding flags, about 16 bytes a night, after its buffer goes).
 3. Portraits (Isobel first), hand-checked for the "human, not monstrous"
-   rule: the accused's scars are never the scary part.
+   rule: the accused's scars are never the scary part. Isobel on the
+   Night One card under way (v0.6); next Kate Rankin on the parade's
+   arranging screen (cols 22-31, rows 6-17: "No further than the house
+   door" runs to column 24 and needs shortening).
 4. Banks and the boot stub; AY music (a slow theme, a church-bell tone).
 
 ## Testing

@@ -82,7 +82,7 @@ detect128:
 ;  The script interpreter. HL = script. Each handler takes its
 ;  arguments from (HL), leaves HL after them and jumps to run.
 ; ============================================================
-NOPS    EQU 13
+NOPS    EQU 14
 
 run:    ld a,(hl)
         inc hl
@@ -107,7 +107,7 @@ run_bad:
 
 optab:  dw op_end,op_cls,op_pic,op_text,op_type,op_wait
         dw op_pause,op_border,op_clrrows,op_jump,op_choice
-        dw op_night,op_load
+        dw op_night,op_load,op_portrait
 
 op_end: ret
 
@@ -248,9 +248,117 @@ op_load:                    ; db chunk: unpack it and run it from the start
         call loadchunk
         jp run
 
+op_portrait:                ; db portrait number, row, col
+        ld a,(hl)
+        inc hl
+        ld b,(hl)
+        inc hl
+        ld c,(hl)
+        inc hl
+        push hl
+        call portrait
+        pop hl
+        jp run
+
 ; ============================================================
 ;  Screen
 ; ============================================================
+; ---- portrait A (porttab, ZX0) at character row B, column C ----
+; PORTW x PORTH cells: unpacked to PSCR (the free space above the code),
+; its colour cells blacked out first, then the pixels, then the colours,
+; so it appears at once. Colours go through attrbase, so a hidden
+; (veiled) night screen keeps it hidden too.
+PORTW   EQU 10
+PORTH   EQU 12
+PSCR    EQU END_OF_CODE     ; PORTW*PORTH*9 bytes, below the buffers (build.py checks)
+
+portrait:
+        ld (p_rc),bc
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,porttab
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ld de,PSCR
+        call dzx0_standard
+        ld bc,(p_rc)
+        ld l,b              ; HL = its top left colour cell
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld b,0
+        add hl,bc
+        ld bc,(attrbase)
+        add hl,bc
+        push hl
+        ld b,PORTH          ; black out its colours
+pt1:    push bc
+        ld b,PORTW
+pt2:    ld (hl),0
+        inc hl
+        djnz pt2
+        ld de,32-PORTW
+        add hl,de
+        pop bc
+        djnz pt1
+        ld a,(p_rc+1)       ; first pixel row = row * 8
+        add a,a
+        add a,a
+        add a,a
+        ld (p_y),a
+        ld hl,PSCR
+        ld b,PORTH*8
+pt3:    push bc
+        ld a,(p_y)          ; DE = screen address of pixel row A, column
+        ld e,a
+        and 0C0h
+        rrca
+        rrca
+        rrca
+        or 40h
+        ld d,a
+        ld a,e
+        and 7
+        or d
+        ld d,a
+        ld a,e
+        and 38h
+        rlca
+        rlca
+        ld e,a
+        ld a,(p_rc)
+        add a,e
+        ld e,a
+        ld bc,PORTW
+        ldir
+        ld a,(p_y)
+        inc a
+        ld (p_y),a
+        pop bc
+        djnz pt3
+        pop de              ; HL = PSCR + its pixels: the colours
+        ld b,PORTH
+pt4:    push bc
+        ld bc,PORTW
+        ldir
+        ex de,hl
+        ld bc,32-PORTW
+        add hl,bc
+        ex de,hl
+        pop bc
+        djnz pt4
+        ret
+
+p_rc:   dw 0                ; col, row
+p_y:    db 0
+
 clsa:                       ; clear the screen; every colour cell = A
         push af
         ld hl,4000h
