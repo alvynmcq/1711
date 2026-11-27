@@ -360,7 +360,8 @@ Willson -> John Wilson, Donaldson -> Hugh Gilmour.
      be seen is in the record / much is not / almost none of it), never a
      count or the findings themselves. Draft lines to be shown first.
    Build order: banks; the patience in Night One; Nights Two and Three
-   (with portraits); the trial; the end.
+   (with portraits); the trial; the end. The design for all of it was
+   decided on 27 Nov: see "Stage 2 design" below.
 4. Banks and the boot stub: done in v0.7. AY music (a slow theme, a
    church-bell tone) still to do: the player goes in bank 0, called from
    `isr`, which pages it in and puts `curbank` back.
@@ -417,3 +418,181 @@ v0.1: SkoolKit tap2sna (real ROM loader, 48K and 128K) + tools/simtest.py:
 the 48K message; on 128K title -> whole prologue (13 SPACE presses) ->
 Night One card -> credits -> title; C from the title for credits. Not yet
 tested in FuseX or on real hardware.
+
+## Stage 2 design (decided 27 Nov)
+
+The worry was that the game isn't as immediate as Night Porter. The answer
+is one loop in three stages: at night, compare, stamp, and the Mayor
+reacts; in court, present, "Hold, sir!", and Ormsby answers. The pages
+used in court are exactly what was stamped in at night. The full proposal
+(with the reasoning and the risks) is the 1711 stage 2 design doc on
+claude.ai. Everything below is accepted unless marked open.
+
+### The night as a desk (replaces the hub and the reader)
+
+- Witnesses come to the table in a fixed order, one closed case each:
+  read, compare against the book, stamp, gone. No calling one back.
+- The screen is split top and bottom (both keep 40-column text). Rows 0-1:
+  the witness, "Sworn 3rd March", the Mayor's manner line, the candle.
+  Rows 2-10: the statement before you (cursor Q/A). Row 11: a rule and
+  "The book: <name>" (keys 1-6 pick an earlier statement). Rows 12-19: that
+  statement (cursor P/L). Row 20: the result and what is in hand. Rows
+  21-22: keys. Row 23: the Mayor's slip.
+- Compare (SPACE) is instant: a boxed word over row 11, an AY thump, 1
+  unit of candle. THEY DIFFER (red; goes in hand), THEY AGREE (white; in
+  hand), WORD FOR WORD (the copy; in hand), NO BEARING (plain). It must
+  land within 2 frames: a table lookup and a box drawn straight to the
+  screen, never veiled.
+- Stamp (ENTER): what is in hand is listed, toggled with 1-3 as on the
+  parade screen. A difference: put the question / let it lie. An
+  agreement: note it / let it lie. Then ENTERED AS SWORN or ENTERED.
+  QUESTION PUT. in large letters. The witness answers each question in one
+  typed line (into the book), then the Mayor's slip. Writing costs 2
+  candle per item, as now. The question goes to the witness at the table
+  (the later of the two statements).
+- The copy can be written two ways: "John Wilson corroborates William
+  Dickey." (the Mayor is pleased) or "John Wilson's statement is William
+  Dickey's, word for word." (it costs), or let lie.
+- Only witness answers, Lyle's questions and scenes type; the rest is shown
+  at once.
+- Night One's queue: Dickey (nothing to find: the Mayor's orders, a first
+  stamp); Wilson (the copy); Gilmour (agrees with Dickey: never seen them,
+  new claim `never_seen`); Lowry (clean); Margaret Wylie (differs from
+  Lowry: the knots, who found the apron); Gordon (differs from Gilmour on
+  Janet Moore; agrees with Dickey on the fit at first sight, new claim
+  `fit_on_sight`); the parade, last. Draft answers: Wilson "I swear to
+  what William swore. It is true, so it is the same."; Margaret Wylie
+  "Nine, sir. Meg was frighted and miscounted." / "Miss Halliday found it.
+  Meg only brought it to the parlour."; Gordon "I sent for her as a
+  neighbour. I said nothing of it to the girl." The answers smooth the gap
+  over; none says who was right.
+- The night format grows: case order, agreements (same claim, same value;
+  night.py lists agreeing pairs too), stamp choices, a `patience` value on
+  every finding and record line, the witnesses' answers. nightcheck.py
+  prints items per case and the patience of three paths (everything, the
+  collaborator, balanced).
+- The Mayor's orders, a card at the start of each night, grow:
+  - Night One, two witnesses: "Take down what is sworn. Where two swear
+    alike, note it: the law wants two."
+  - Night Two, her sight is evidence (spectral evidence): a line where
+    Isobel saw a shape is written "Janet Kerr appeared to her" (as
+    ordered) or "She saith Janet Kerr appeared to her" (honest, a small
+    cost each). The "she saith" pages let Lyle call it visionary
+    imaginings, as Upton did.
+  - Night Three, a test, arranged like the parade, with conditions the
+    clerk chooses. OPEN: which test is in the Islandmagee record (a touch
+    test, a search for marks, or another). Use only one the record has.
+- The ledger, one screen at the end of each night, in the clerk's hand:
+  what he entered, questions put, agreements noted, the candle, the
+  Mayor's goodnight (by band), then the next night's order. It counts only
+  what the clerk did, never what there was.
+- Nights Two and Three: 6-8 items a night, with decoys (same topic, no
+  bearing) and findings that share no word, so it is reading, not word
+  matching.
+
+### The Mayor's patience
+
+- One hidden byte, 0-12. Night One starts at 12; +2 overnight (at most
+  12). Shown by the manner line on the desk (10-12 "Mayor Ellis warms his
+  hands at the fire."; 6-9 "...is reading over your shoulder."; 3-5
+  "...stands at your elbow."; 1-2 "...has his hand on the book.") and the
+  slip after every stamp (a low AY note for a cost, a brighter one for a
+  gain).
+- Night One costs (to be tuned by play-testing): an agreement noted +1
+  each; Wilson as corroboration +1, as word for word -2; questions: the
+  knots -1, who found the apron -2, Janet Moore -3. Parade: the fit 0;
+  "singled Kate out from among six women" +2; "told beforehand" -2; "name
+  spoken in the hall" -2; "youngest, and like her mother" -2; "unseen, at
+  the house door only" -1; "brought to her alone" 0. A bare book at the
+  end of the night (only the fit) -2. Gains from agreements at most +3 a
+  night.
+- So: writing everything honestly on Night One ends it cold, dismissed
+  part way through Night Two; the collaborator stays at 12 and gives Lyle
+  nothing; the balanced clerk keeps the two strongest pages. The honest
+  parade pair ("singled out" and "like her mother") nets 0: buying
+  patience means writing only the Crown's half.
+- Slips (draft): gains "Two witnesses. The law is satisfied, and so am
+  I." / "There. That is the way of it." (he helps himself to Hugh Wylie's
+  brandy) / "Neatly put. I may mention you to the Bishop."; small "Five or
+  nine, sir, it was knotted. Write on." / he drums his fingers; middling
+  "Must you?" / "Two honest men may say the same thing, sir. It is called
+  agreeing." / "Ink is dear, and so is my evening."; large "Mr Gordon is a
+  minister of the Gospel." (nothing else) / "I have been Mayor of
+  Carrickfergus three times and never once needed a question." Cold
+  prefixes: he does not look at you / "I begin to wonder whose clerk you
+  are." Humour is always at the Mayor and the bench, never the accused.
+- At 0: "Give me the pen. Mr Agnew will write. You may sit by the fire and
+  warm your scruples." (Agnew, an invented deputy.) The rest of the night
+  is stamped ENTERED AS SWORN, faster and faster (under 5 seconds); if the
+  parade is still to come, the Mayor arranges it (told, alone, into the
+  room). Later nights: the clerk reads and compares by the fire (no
+  candle) but cannot stamp; what he finds goes in his pocket-book, not the
+  record. Agnew's pages are one line each, "Entered as sworn.", in another
+  colour. Dismissal is permanent.
+
+### The trial
+
+- Carrickfergus, 31 March 1711, six till two. Isobel is brought in and
+  cannot speak (she was dumb throughout the trial and had no fit while it
+  lasted: MacSkimin); shown once in her portrait, never questioned. The
+  household testify (Gordon, Lowry, Margaret Wylie, Gilmour, Dickey and
+  Wilson, and the witnesses of Nights Two and Three), then Mayor Ellis on
+  the parade: presenting a parade page against him costs his patience
+  heavily.
+- No defence counsel (felony, 1711): Lyle is the only voice they have. Say
+  so once, plainly.
+- Testimony has drifted towards the Mayor's version (Lowry now says nine
+  knots, and that Miss Halliday found it); the book holds what was sworn
+  in March. The witnesses aren't villains: they have heard the story told
+  until it is what they remember.
+- The clock: eight marks in the candle's corner, struck off by the hour
+  with an AY church bell. Testimony takes fixed time; press 10 min; a page
+  that bears 20 min; one that doesn't 30 min and the Mayor -1; a
+  pocket-book page 40 min. At two the jury retires: the rest is heard in
+  haste, nothing more presented. The Mayor's patience carries on; at 0 he
+  has the clerk put out of court.
+- Ormsby opens by reading out every agreement the clerk noted.
+- Testimony a line at a time: the portrait right (columns 22-31), the line
+  left; O/P between lines, SPACE presses (a further line, sometimes a new
+  testimony line), ENTER opens the book (Q/A a page, ENTER passes it up).
+- The moment: the border flashes red and white 6 frames, an AY bell
+  (tone, decaying envelope), HOLD, SIR! double height in bright white,
+  Lyle's question typed ("On the 3rd of March you swore five knots. How
+  came you to swear nine?"), the portrait falters (a cell delta: eyes
+  down, mouth changed), the witness answers ("I... it was a great
+  confusion, my lord."), Ormsby answers with the reasoning of the day
+  ("A servant's count, brother. The apron was knotted, and that is the
+  matter."), Lyle: "Let it be written: ..." into Lyle's notes. A wrong
+  page: "This does not bear upon it." Ormsby: "Brother Lyle, the clerk's
+  papers are not Scripture." The copy in court: "Then they are
+  consistent, brother."
+- Lyle's summing-up starts from Upton's own points (sober, industrious,
+  attended public worship, could say the Lord's Prayer: MacSkimin), then a
+  sentence per point raised, in order; pocket-book points are spoken, not
+  written into the record. Ormsby sums up (fixed); the jury convicts.
+- The sentence is fixed: a year's imprisonment and four times in the
+  pillory. It never varies with play (that would make their suffering the
+  score). Optionally the clerk's own fate varies (kept on, or not employed
+  again).
+- The reveal: what was raised (Lyle's points), then one line by the
+  proportion of everything there was that reached the court: "Most of what
+  was there to be seen was put before the court. It is in the record. It
+  changed nothing." / "Some ... More lay in the depositions, unread." /
+  "Little of what was there to be seen reached the court." / "None of what
+  was there to be seen reached the court. The record says what the house
+  said."
+
+### Cost and build order
+
+Patience is a byte and its flags sit below C000h; slips and manner lines
+about 1.5 KB of text per night bank; the desk about +1 KB of code; the AY
+thump and bell are direct register writes (about 150 bytes, no player);
+the trial in bank 7 (portraits about 300 bytes packed each, about 60 for a
+faltering delta) with 3-4 KB of screen code below C000h. The hub tests
+(apron, candle, parade) change on purpose: new key scripts for the desk.
+
+1. The night format and nightcheck.py (above).
+2. The desk: both halves, compare, the instant result, the stamp.
+3. Patience: slips, the manner line, the ledger, dismissal and Agnew.
+4. The parade's costs; retune the candle against the new minimum.
+5. Tests and the tape. Then Nights Two and Three, the trial, the end.
