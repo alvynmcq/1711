@@ -186,7 +186,7 @@ NIGHT = {
     # -------------------------------------------------------------
     "findings": {
         "copy:wilson": {
-            "label": "John Wilson's words are Dickey's",
+            "label": "Wilson swears Dickey's words",
             "write": [
                 ("Corroborates", "John Wilson corroborates William Dickey.",
                  +1, "'Two witnesses. The law is satisfied.'", None),
@@ -206,7 +206,7 @@ NIGHT = {
             "write": [
                 ("Put the question", "Of the apron: Margaret Lowry saith it was tied "
                  "with five knots, Margaret Wylie saith nine.",
-                 -1, "'Five or nine, it was knotted. Write on.'",
+                 -1, "'Five or nine, it was knotted. Go on.'",
                  "'Nine, sir. Meg was frighted and miscounted.'"),
             ]},
         "apron_found_by": {
@@ -254,13 +254,13 @@ NIGHT = {
             "gain":   ["He helps himself to Hugh Wylie's brandy.",
                        "'There. That is the way of it.'",
                        "'Neatly put. I may tell the Bishop.'"],
-            "none":   ["'Good. Call the next.'",
-                       "Mayor Ellis nods, and calls the next."],
+            "none":   ["Mayor Ellis nods.",
+                       "'Good. That is plain enough.'"],
             "small":  ["He drums his fingers on the table.",
                        "'Write on, sir.'"],
             "middle": ["'Must you?'",
                        "'Ink is dear, and so is my evening.'"],
-            "large":  ["'Thrice Mayor, sir, and never a question.'",
+            "large":  ["'Thrice Mayor, and never a question.'",
                        "He says nothing at all."],
         },
         # above the slip, when a cost leaves him at 5 or less

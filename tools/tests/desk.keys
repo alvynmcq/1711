@@ -1,0 +1,75 @@
+# The desk (v0.8): a whole Night One. Title -> prologue -> the Night One
+# card -> the Mayor's orders (16 SPACEs) -> the desk.
+frames 3800
+every 60 40 16 SPACE
+# Dickey: nothing in hand; ENTER, ENTER: ENTERED AS SWORN, a first slip
+700 ENTER
+740 ENTER
+800 SPACE
+# Wilson: line 1 against Dickey's line 1: WORD FOR WORD (842: within 2
+# frames of the key); stamped as "Word for word", a question put
+840 SPACE
+880 ENTER
+920 1
+960 ENTER
+1140 SPACE
+# Gilmour line 3 against Wilson line 6 (a copy of Dickey's): THEY AGREE; noted
+1180 A
+1220 A
+1260 L
+1300 L
+1340 L
+1380 L
+1420 L
+1460 SPACE
+1500 ENTER
+1540 ENTER
+1620 SPACE
+# Lowry: nothing compared, entered as sworn
+1660 ENTER
+1700 ENTER
+1780 SPACE
+# Margaret Wylie: line 1 against Lowry's line 3 (the knots), line 2 against
+# Lowry's line 2 (who found it): both questions put, both answered
+1820 L
+1860 L
+1900 SPACE
+1940 A
+1980 P
+2020 SPACE
+2060 ENTER
+2100 ENTER
+2380 SPACE
+# Gordon: line 2 against Gilmour's line 5 (Janet Moore), line 4 against
+# Dickey's line 4 (the fit at first sight)
+2420 3
+2460 L
+2500 L
+2540 L
+2580 L
+2620 A
+2660 SPACE
+2700 1
+2740 L
+2780 L
+2820 L
+2860 A
+2900 A
+2940 SPACE
+2980 ENTER
+3020 ENTER
+3220 SPACE
+# the parade: quiet / among / room; the scene; Y Y
+3260 1
+3300 2
+3340 SPACE
+3380 SPACE
+3420 SPACE
+3460 Y
+3500 Y
+3560 SPACE
+3600 SPACE
+3640 SPACE
+3680 SPACE
+3720 SPACE
+shot 699 730 790 839 842 870 950 1130 1179 1459 1462 1600 1659 1760 1902 2022 2090 2360 2662 2942 3010 3200 3259 3339 3400 3450 3540 3599 3639 3679 3719 3759

@@ -19,6 +19,10 @@ Building stage 2's steps 1-5 for Night One (see "Stage 2 design" below).
   answers, the Mayor's lines; nightcheck.py prints the items per case and
   three paths' patience. The v0.7 hub still ran on it (agreements left
   out; the compare screen showed the book wording).
+- Step 2, the desk (done): replaces the hub and the reader (see The desk,
+  below). The Mayor's patience went in with it (the stamp needs it), and
+  is checked on its own in step 3. The hub tests (apron, candle, parade)
+  are gone with the hub; desk.keys plays a whole night.
 
 ## What v0.7 has
 

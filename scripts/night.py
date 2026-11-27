@@ -1,32 +1,40 @@
 #!/usr/bin/env python3
 """Compile a night (data/nightN.py) into src/night.inc for the engine's
-night screens: the hub, the statement reader, compare, the clerk's book.
+night screens (src/night.asm): the orders card, the desk, the parade, the
+ledger, the clerk's book.
 
   python3 scripts/night.py 1
 
 Everything the Z80 would find awkward is worked out here: clauses are
-wrapped to the screen, statements are cut into pages, and every pair of
-lines that means something when compared (a contradiction, or a line
-sworn word for word the same by two people) is listed with its finding.
-The engine only looks a pair up in that table.
+wrapped to the screen, statements are cut into pages of the desk's halves,
+and every pair of lines in two statements that means something (THEY
+DIFFER, THEY AGREE, WORD FOR WORD) is listed with its finding, so the
+engine only looks a pair up in a table (the desk's compare must land
+within 2 frames).
 
-Layout of src/night.inc (all labels used by src/main.asm):
+Layout of src/night.inc (all labels used by src/night.asm):
 
-  HUBROW EQU r          row of the first statement on the hub
-  NIGHT_NF EQU n        number of findings
-  NIGHT_CANDLE EQU n    the night's candle: a compare burns 1, writing 2 more
-  night_hub             textlist: the hub screen
-  night_book            textlist: the book's heading
-  night_people          textlist: the book's page of names
-  night_nst: db n       statements, then night_st: dw st_0, st_1, ...
-  st_k: dw who, sworn   then db clauses, pages; dw clause table;
-                        then per page db first clause, clause count
+  NIGHT_N, NIGHT_NF, NIGHT_NST, NIGHT_CANDLE, PAT0, PATMAX, GAIN_MAX,
+  BARE (what a bare book costs), CDL_Q, CDL_H (a quarter, a half of the
+  candle, for the ledger)
+  night_orders          textlist: the orders card
+  night_book, night_ledger, night_people   textlists: headings, names
+  night_nst: db n       statements in case order, then night_st: dw st_0, ...
+  st_k: dw who, sworn, short name, clause table; db clauses, pages;
+        then per page db first clause, clause count
   clause: db lines, then each line as a 0-terminated string
-  night_pairs: db n     then n x (db s0, c0, s1, c1, finding),
-                        (s0, c0) < (s1, c1)
-  night_find            dw seen, book for each finding (both clause-
-                        format blocks: db lines, strings)
-  txt_nobear            block shown when a pair means nothing
+  night_pairs: db n     then n x (db s0, c0, s1, c1, finding), s0 < s1
+                        (s1 is the case at the table, s0 a statement in the book)
+  night_find: dw fr_0, ...   one record a finding:
+        db kind (0 differ, 1 agree, 2 copy), ways to write it (1-2)
+        dw label
+        db the column of each option (the ways, then Let it lie; 3 bytes)
+        per way: dw menu, book block, answer block (0: none), slip (0: by cost)
+                 db patience (signed)
+  night_fcase: db the case each finding is found at
+  man_tab: dw 4 manner lines; slip_tab: dw 5 lists (gain, none, small,
+  middle, large), each db n, dw strings; cold_tab: db n, dw strings;
+  good_tab: dw 4 blocks; txt_dismiss, txt_next: blocks
   par_...               the parade (see compile_parade)
 """
 import importlib.util
@@ -39,13 +47,12 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 from script import MARGIN, wrap, BYEL, WHT, BWHT, YEL, CYN  # noqa: E402
 from font import FONTW  # noqa: E402  (script.py put art/ on the path)
 
-WIDTH = (256 - 8 - MARGIN) // FONTW   # characters per line from column 1 (40)
-PAGE0, PAGEROWS = 3, 17               # statement text: rows 3-19
-CLAUSE_MAX = 4                        # compare screen: lines per clause
-RESULT_MAX = 4                        # compare screen: lines of a finding (rows 14-17)
-HUBROW = 6
-NUMBERS = ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN"]
-NOBEAR = "These two lines do not bear on one another."
+WIDTH = 39                  # characters a line from column 1, clear of column 31
+                            # (the candle, rows 0-3); v0.7 was 40
+HALFROWS = 8                # the desk's halves: rows 3-10 and 12-19
+CANDLE_MAX = 25             # 32 pixel rows: the dish, the wax, a 5-pixel flame
+KIND = {"differ": 0, "agree": 1, "copy": 2}
+LETLIE = "Let it lie"
 # Mayor Ellis's patience (stage 2): a byte, 0-12; Night One starts at 12,
 # +2 overnight; desk gains at most GAIN_MAX a night; the manner line's
 # bands start at BANDS (10-12, 6-9, 3-5, 1-2); at 0 he takes the pen
@@ -149,9 +156,8 @@ def paginate(lines):
     pages, first, rows = [], 0, 0
     for i, (text, _, _) in enumerate(lines):
         n = len(wrap(text, WIDTH))
-        assert n <= PAGEROWS
-        assert i - first < 16, "pg_row holds 16 lines a page"
-        if rows + n > PAGEROWS:
+        assert n <= HALFROWS
+        if rows + n > HALFROWS:
             pages.append((first, i - first))
             first, rows = i, 0
         rows += n
@@ -165,8 +171,18 @@ def block(label, text, maxlines):
     return ["%s:" % label, "        db %d" % len(w)] + [asm_str(x) for x in w]
 
 
+def fits(col, s, right=248):
+    """True if s drawn from column col ends left of pixel `right` (column 31
+    is the candle's in rows 0-3; keep every line clear of it)."""
+    return col * 8 + MARGIN + len(s) * FONTW <= right
+
+
+def cells(s):
+    return (MARGIN + len(s) * FONTW + 7) // 8
+
+
 def textrec(row, col, attr, s):
-    assert col * 8 + MARGIN + len(s) * FONTW <= 256, "too wide: %r" % s
+    assert fits(col, s, 256), "too wide: %r" % s
     return ["        db %d,%d,%d" % (row, col, attr), asm_str(s)]
 
 
@@ -207,13 +223,13 @@ def compile_parade(night):
     for i, k in enumerate(names):
         out += textrec(7 + 4 * i, 1, BYEL, "%d  %s" % (i + 1, p["choices"][k][0]))
     out += textrec(22, 1, CYN, "1 2 3  change      SPACE  send for her")
-    out += textrec(23, 1, CYN, "X  not yet")
     out.append("        db 0FFh")
     out.append("par_brought:")
     out += textrec(0, 1, BYEL, who + " is brought")
     out.append("        db 0FFh")
-    out.append("msg_brought:")
-    out += textrec(20, 1, YEL, who + " has been brought already.")
+    out.append("par_mayor:")             # dismissed: he arranges it himself
+    out += textrec(0, 1, BYEL, who + " is brought")
+    out += textrec(1, 1, WHT, "Mayor Ellis arranges it himself.")
     out.append("        db 0FFh")
     out.append("par_opt: dw " + ",".join("po_%d_%d" % (i, j) for i in range(len(names)) for j in (0, 1)))
     out.append("par_scene: dw " + ",".join("ps_%d_%d" % (i, j) for i in range(len(names)) for j in (0, 1)))
@@ -230,6 +246,7 @@ def compile_parade(night):
     out.append("par_rec: dw " + ",".join("pr_%d" % i for i in range(len(rec))))
     for i, (_, t, _) in enumerate(rec):
         out += block("pr_%d" % i, t, 2)
+    out.append("par_pat: db " + ",".join(str(v & 255) for _, _, v in rec))
     out += block("par_fit", p["fit"], 3)
     out.append("par_combo:")
     for combo in range(1 << len(names)):
@@ -238,7 +255,7 @@ def compile_parade(night):
                             if all(pick[k] == v for k, v in cond.items())]
         sm, rm = hits(seen), hits(rec)
         # the scene: a line per choice, a blank, the fit, a blank, what was seen
-        rows = 2 + sum(len(wrap(p["choices"][k][1][(combo >> i) & 1][2], WIDTH))
+        rows = 3 + sum(len(wrap(p["choices"][k][1][(combo >> i) & 1][2], WIDTH))
                        for i, k in enumerate(names))
         rows += 1 + len(wrap(p["always"], WIDTH)) + 1
         rows += len(wrap(p["spoken"], WIDTH)) + 1
@@ -252,48 +269,64 @@ def compile_parade(night):
     return out
 
 
+def one(label, s, col=1, right=248):
+    """A one-line string that must fit from column col, clear of column 31
+    (right=256 for a line drawn below the candle's rows)."""
+    assert fits(col, s, right), "%s: too long for one line: %r" % (label, s)
+    return ["%s:" % label, asm_str(s)]
+
+
 def compile_night(n):
     night = load(n)
     sts = night["statements"]
-    assert len(sts) <= 9, "keys 1-9 pick a statement"
+    assert len(sts) <= 9, "keys 1-9 turn the book to a statement"
     cl = clauses_of(night)
     pairs, keys, kinds = findings_of(night)
     check_findings(night, keys)
-    # the v0.7 reader knows contradictions and copies only (the desk, next)
-    pairs = {p: k for p, k in pairs.items() if kinds[k] != "agree"}
-    keys = [k for k in keys if kinds[k] != "agree"]
-    texts = {k: (f["write"][-1][1], f["write"][-1][1]) for k, f in night["findings"].items()}
-    assert len(pairs) < 256 and 1 <= len(keys) <= 16   # night_fflag holds 16
+    cases = case_of(pairs)
+    f = night["findings"]
+    assert len(pairs) < 256 and 1 <= len(keys) <= 9   # night_fflag holds 16; the ledger counts 0-9
+    for s in range(len(sts)):
+        assert sum(1 for k in keys if cases[k] == s) <= 3, "three items in hand at most"
+    assert 1 <= night["candle"] <= CANDLE_MAX, "a candle is 1-%d units" % CANDLE_MAX
+    m = night["mayor"]
 
     out = ["; generated by scripts/night.py from data/night%d.py" % n,
-           "HUBROW  EQU %d" % HUBROW, "NIGHT_NF EQU %d" % len(keys),
-           "NIGHT_CANDLE EQU %d" % night["candle"]]
-    assert 1 <= night["candle"] <= 16, "a candle is 1-16 units (16 pixels of wax)"
+           "NIGHT_N EQU %d" % n, "NIGHT_NF EQU %d" % len(keys), "NIGHT_NST EQU %d" % len(sts),
+           "NIGHT_CANDLE EQU %d" % night["candle"],
+           "CDL_Q EQU %d" % (night["candle"] // 4), "CDL_H EQU %d" % (night["candle"] // 2),
+           "PAT0 EQU %d" % PAT0, "PATMAX EQU %d" % PATMAX, "GAIN_MAX EQU %d" % GAIN_MAX,
+           "BARE EQU %d" % -m["bare"]]
+    assert m["bare"] <= 0
 
-    # the hub
-    out.append("night_hub:")
-    out += textrec(1, 1, BYEL, "N I G H T    " + spaced(NUMBERS[n - 1]))
-    out += textrec(2, 1, WHT, night["date"] + ", " + night["place"].split(",")[0])
-    out += textrec(4, 1, YEL, "The statements sworn this day:")
-    for i, st in enumerate(sts):
-        out += textrec(HUBROW + i, 1, WHT, "%d  %s" % (i + 1, st["who"]))
-    r = HUBROW + len(sts) + 1
-    out += textrec(r, 1, WHT, "B  The clerk's book")
-    p = night.get("parade")
-    if p:
-        out += textrec(r + 1, 1, WHT, "K  " + night["people"][p["accused"]].split(",")[0]
-                       + " is sent for")
-    out += textrec(r + 2, 1, WHT, "X  End the night")
-    out += textrec(r + 4, 1, YEL, "In a statement, M marks a line. Mark two")
-    out += textrec(r + 5, 1, YEL, "and C sets them side by side. That burns")
-    out += textrec(r + 6, 1, YEL, "candle, and writing it out burns more.")
-    assert r + 6 < 20
+    # the orders card, before the first witness
+    out.append("night_orders:")
+    out += textrec(1, 1, BYEL, "Mayor Ellis gives his orders:")
+    row = 3
+    for ln in wrap(night["orders"], WIDTH):
+        out += textrec(row, 1, BWHT, ln)
+        row += 1
+    row += 1
+    how = ("One by one the witnesses come to your table. Q and A choose a line "
+           "of what is sworn; P and L, a line in the book, and 1-6 turn the book "
+           "to an earlier statement. SPACE sets the two side by side, and burns "
+           "candle. ENTER stamps the statement into the book, with what you have "
+           "in hand, and the witness goes. No one is called back.")
+    for ln in wrap(how, WIDTH):
+        out += textrec(row, 1, YEL, ln)
+        row += 1
+    assert row <= 22
     out.append("        db 0FFh")
 
-    # the book's heading and its page of names
+    # headings: the ledger, the book, the names
+    place = night["place"].split(",")[0]
+    out.append("night_ledger:")
+    out += textrec(0, 1, BYEL, "The Ledger")
+    out += textrec(1, 1, WHT, night["date"] + ", " + place)
+    out.append("        db 0FFh")
     out.append("night_book:")
     out += textrec(0, 1, BYEL, "The Clerk's Book")
-    out += textrec(1, 1, WHT, night["place"].split(",")[0] + ", " + night["date"])
+    out += textrec(1, 1, WHT, place + ", " + night["date"])
     out.append("        db 0FFh")
     out.append("night_people:")
     out += textrec(0, 1, BYEL, "Names taken down this night")
@@ -313,41 +346,87 @@ def compile_night(n):
             row += 1
     out.append("        db 0FFh")
 
-    # statements
+    # statements, in case order
     out.append("night_nst: db %d" % len(sts))
     out.append("night_st: dw " + ",".join("st_%d" % i for i in range(len(sts))))
     by_id = {st["id"]: i for i, st in enumerate(sts)}
     for i, st in enumerate(sts):
         own = by_id[st["copy_of"]] if "copy_of" in st else i
         pages = paginate(cl[i])
+        short = st["who"].split(",")[0]
         out.append("st_%d:   ; %s" % (i, st["id"]))
-        out.append("        dw st_%d_who,st_%d_sw" % (i, i))
+        out.append("        dw st_%d_who,st_%d_sw,st_%d_sh,cltab_%d" % (i, i, i, own))  # a copy shares the words
         out.append("        db %d,%d" % (len(cl[i]), len(pages)))
-        out.append("        dw cltab_%d" % own)     # a copy shares the words exactly
         out.append("        db " + ",".join("%d,%d" % pg for pg in pages))
-        assert len(st["who"]) <= WIDTH
-        out += ["st_%d_who:" % i, asm_str(st["who"])]
-        out += ["st_%d_sw:" % i, asm_str("Sworn " + st["sworn"] + " 1711")]
+        out += one("st_%d_who" % i, st["who"])
+        out += one("st_%d_sw" % i, "Sworn " + st["sworn"] + " 1711")
+        assert fits(11, short), short       # row 11: "The book: 5  " then the name
+        assert len(short) <= 20, short      # the book: "name" then "Entered as sworn." at column 17
+        out += ["st_%d_sh:" % i, asm_str(short)]
         if own == i:
             out.append("cltab_%d: dw " % i + ",".join("cl_%d_%d" % (i, c) for c in range(len(cl[i]))))
             for c, (text, _, _) in enumerate(cl[i]):
-                out += block("cl_%d_%d" % (i, c), text, CLAUSE_MAX)
+                out += block("cl_%d_%d" % (i, c), text, HALFROWS)
 
-    # findings
+    # the pairs, and the findings
     out.append("night_pairs: db %d" % len(pairs))
     for (s0, c0, s1, c1), key in pairs.items():
         out.append("        db %d,%d,%d,%d,%d   ; %s" % (s0, c0, s1, c1, keys.index(key), key))
-    out.append("night_find:")
-    for f in range(len(keys)):
-        out.append("        dw f%d_seen,f%d_book" % (f, f))
-    book_rows = 0
-    for f, key in enumerate(keys):
-        seen, book = texts[key]
-        out += block("f%d_seen" % f, seen, RESULT_MAX)
-        out += block("f%d_book" % f, book, 3)
-        book_rows += len(wrap(book, WIDTH)) + 1
-    assert book_rows <= 19, "the book would run off its page"   # rows 3-21
-    out += block("txt_nobear", NOBEAR, RESULT_MAX)
+    out.append("night_find: dw " + ",".join("fr_%d" % i for i in range(len(keys))))
+    for i, key in enumerate(keys):
+        fd = f[key]
+        ways = fd["write"]
+        assert fits(8, fd["label"]), "label too long for 'In hand: ': %r" % fd["label"]
+        cols, c = [], 2                         # the options side by side from column 2
+        for menu in [w[0] for w in ways] + [LETLIE]:
+            cols.append(c)
+            c += cells(menu)
+        assert c <= 31, "%s: the options don't fit one line" % key
+        out.append("fr_%d:   ; %s, found at case %d" % (i, key, cases[key] + 1))
+        out.append("        db %d,%d" % (KIND[kinds[key]], len(ways)))
+        out.append("        dw fl_%d" % i)
+        out.append("        db " + ",".join(str(x) for x in (cols + [0, 0, 0])[:3]))
+        for j, (menu, book, pat, slip, answer) in enumerate(ways):
+            out.append("        dw fm_%d_%d,fb_%d_%d,%s,%s" % (
+                i, j, i, j, "fa_%d_%d" % (i, j) if answer else "0", "fs_%d_%d" % (i, j) if slip else "0"))
+            out.append("        db %d" % (pat & 255))
+        out += ["fl_%d:" % i, asm_str(fd["label"])]
+        for j, (menu, book, pat, slip, answer) in enumerate(ways):
+            out += ["fm_%d_%d:" % (i, j), asm_str(menu)]
+            out += block("fb_%d_%d" % (i, j), book, 3)
+            if answer:
+                out += block("fa_%d_%d" % (i, j), answer, 2)    # the stamp screen: two a case
+            if slip:
+                out += one("fs_%d_%d" % (i, j), slip, right=256)
+    out.append("night_fcase: db " + ",".join(str(cases[k]) for k in keys))
+    # the book must fit: every finding written, with its answer
+    book_rows = sum(len(wrap(max((w[1] for w in f[k]["write"]), key=len), WIDTH)) + 3 for k in keys)
+    assert book_rows <= 19 * 3, "the book runs past three pages"
+
+    # Mayor Ellis
+    assert len(m["manner"]) == 4
+    out.append("man_tab: dw " + ",".join("mn_%d" % i for i in range(4)))
+    for i, t in enumerate(m["manner"]):
+        out += one("mn_%d" % i, t)
+    bands = ["gain", "none", "small", "middle", "large"]
+    out.append("slip_tab: dw " + ",".join("sl_%s" % b for b in bands))
+    for b in bands:
+        lst = m["slips"][b]
+        assert 1 <= len(lst) <= 8
+        out.append("sl_%s: db %d" % (b, len(lst)))
+        out.append("        dw " + ",".join("sl_%s_%d" % (b, i) for i in range(len(lst))))
+        for i, t in enumerate(lst):
+            out += one("sl_%s_%d" % (b, i), t, right=256)
+    out.append("cold_tab: db %d" % len(m["cold"]))
+    out.append("        dw " + ",".join("cd_%d" % i for i in range(len(m["cold"]))))
+    for i, t in enumerate(m["cold"]):
+        out += one("cd_%d" % i, t, right=256)
+    assert len(m["goodnight"]) == 4
+    out.append("good_tab: dw " + ",".join("gn_%d" % i for i in range(4)))
+    for i, t in enumerate(m["goodnight"]):
+        out += block("gn_%d" % i, t, 2)
+    out += block("txt_dismiss", m["dismiss"], 3)
+    out += block("txt_next", night["next_orders"], 4)
     out += compile_parade(night)
 
     open(os.path.join(ROOT, "src", "night.inc"), "w").write("\n".join(out) + "\n")
