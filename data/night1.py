@@ -33,9 +33,9 @@ NIGHT = {
 
     # -------------------------------------------------------------
     # Statements. A line is plain text, or (text, claim, value).
-    # Two claims with the same name and different values are a
-    # contradiction the clerk can find and flag. Identical statements
-    # are noticed by the engine as "agreeth word for word".
+    # Two claims with the same name and different values: THEY DIFFER;
+    # the same value: THEY AGREE (v0.8). Identical statements: WORD FOR
+    # WORD ("agreeth with the above, word for word").
     # -------------------------------------------------------------
     "statements": [
         {"id": "dickey", "who": "William Dickey, of Islandmagee", "sworn": "3rd March",

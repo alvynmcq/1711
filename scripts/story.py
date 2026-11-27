@@ -15,7 +15,7 @@ says or swears, never as fact:
 """
 from script import BLK, YEL, BYEL, WHT, BWHT, RED, BRED, CYN
 
-VERSION = "v0.5 slice"
+VERSION = "v0.8 slice"
 
 TITLE = [
     ("cls", WHT),

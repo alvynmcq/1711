@@ -1,4 +1,4 @@
-# 1711 (working title): project notes, v0.7
+# 1711 (working title): project notes, v0.8
 
 A ZX Spectrum 128K game. You are the clerk to Mayor Ellis of Carrickfergus,
 taking sworn statements at Braehead House, Islandmagee, in March 1711, as a
@@ -10,9 +10,123 @@ Based on the trial documents edited by Andrew Sneddon and Shannon Devlin
 w1711 graphic novel (CC BY-NC-ND) was read for research only: nothing from
 it is used.
 
-## What v0.8 has (stage 2, under way)
+## What v0.8 has (stage 2, steps 1-5, Night One)
 
-Building stage 2's steps 1-5 for Night One (see "Stage 2 design" below).
+Stage 2's build order, steps 1-5, for Night One: the night format, the
+desk (replacing the hub and the reader), the Mayor's patience, the
+parade's costs and the candle, the tests. Title and credits say "v0.8
+slice". Nights Two and Three, the trial and the end are still to come;
+Night Three's test stays open.
+
+Changes from the design (27 Nov), made on the screen:
+- The desk's header is three rows, not two: row 0 the witness, row 1
+  "Sworn 3rd March 1711", row 2 the manner line. So the halves are rows
+  3-10 and 12-19, eight rows each (the design had 2-10 and 12-19).
+- The manner lines say "The Mayor ..." ("Mayor Ellis is reading over
+  your shoulder." doesn't fit one line beside the candle).
+- The candle is column 31, rows 0-3 (32 pixel rows, at most 25 units), so
+  all statement text wraps at 39, not 40.
+- The slip after a stamp is on row 20 of the stamp screen (rows 21-23
+  hold the candle message and the prompt), then on row 23 of the next
+  desk until the next stamp. Slips are one line (40 characters): some
+  drafts were shortened ("'Thrice Mayor, and never a question.'",
+  "'Five or nine, it was knotted. Go on.'").
+- The stamp: ENTERED. QUESTION PUT. if any question was put, else
+  ENTERED AS SWORN (notes alone are "as sworn"). The stamp list's default
+  for each item is its first way of writing it; "Let it lie" is a choice.
+- ENTER with nothing in hand still opens the stamp list ("Nothing in
+  hand. It goes into the book as sworn."): two ENTERs, as no one is
+  called back.
+- The parade has no "X not yet": it comes last, after the sixth witness.
+- Gains capped at +3 a night are the desk's only (agreements and the copy
+  as corroboration); the parade's "singled out" +2 is not capped, so the
+  honest pair nets 0 as designed.
+- The "none" slips don't say "call the next" (they follow the parade too).
+
+### Night One's numbers (nightcheck.py)
+
+everything ends at 6 (reads over your shoulder), candle 18 of 22;
+collaborator ends at 12, candle 9; balanced (the Moore and who-found-it
+questions, agreements noted, the copy as corroboration) ends at 8, candle
+16. The lowest Night One can go is 1 (every cost and the worst parade),
+so no one is dismissed on Night One. The design hoped "everything" would
+end Night One cold (3-5); it ends at 6, one above. Left for play-testing.
+
+### The night, in order (src/night.asm)
+
+1. The orders card: the Mayor's order, and how the desk works.
+2. The desk, a witness at a time, in `order` (below).
+3. The parade, last (the arranging screen, the scene, the record).
+4. The bare-book cost, if only the fit is written.
+5. The ledger: statements entered, questions put, agreements noted,
+   parade lines written, Mr Agnew's (if any, in bright cyan), the candle in
+   words (burnt to the dish / a stub / half / more than half), the Mayor's
+   goodnight by band (or the dismissal), his order for tomorrow.
+6. The clerk's book: case by case what was written (the answers under
+   their questions, in white), Mr Agnew's "Entered as sworn." lines in
+   bright cyan, then the parade (the fit, in his colour if he wrote it),
+   or "Nothing but what was sworn."; then the names page.
+
+### The desk
+
+| Rows | What |
+|---|---|
+| 0-2 | the witness (bright white), "Sworn ...", the Mayor's manner (cyan) |
+| 3-10 | what this witness swore (yellow; Q / A move, over the edge turns the page) |
+| 11 | a dashed rule, "The book: n  name" (1-9 turn it to an earlier statement) |
+| 12-19 | that statement (cyan; P / L) |
+| 20 | the result: "In hand: <label>" (bright when new), or why not |
+| 21-22 | keys |
+| 23 | the Mayor's last slip |
+| col 31, rows 0-3 | the candle |
+
+'^' and 'v' in column 0 of a half's first and last rows: there is a page
+before or after. The chosen line in each half is bright white.
+
+- Compare (SPACE): 1 candle; the pair is looked up in `night_pairs`
+  (book statement and line, table statement and line), then a box drawn
+  straight to the screen over row 11, cells 9-22: THEY DIFFER (white on
+  red), THEY AGREE (black on white), WORD FOR WORD (black on yellow), NO
+  BEARING (plain), and the AY thump. The box goes at the next key (row 11
+  redrawn). Measured: the thump is written the frame after the key, the
+  box before it (desk.keys shoots 2 frames after the key). A finding not
+  in hand goes in hand (flag 1). No book (the first witness): "Nothing in
+  the book to set it beside.", no candle. No candle: "The candle is out.
+  You read by the fire."
+- The stamp list (ENTER): rows 12-22, "1  label" and its ways side by side
+  under it (columns from night.py), the chosen one bright white on red;
+  1-3 cycle an item's ways ("Let it lie" last); X back to the desk (the
+  choices kept); ENTER stamps.
+- The stamp: each item written: flag 2 + its way, 2 candle (not below 0),
+  its patience (gains capped). Rows 12-13: the stamp, letters twice as tall
+  in a ruled box, bright red (Mr Agnew's bright cyan), and an AY stamp.
+  The answers typed under it (rows 14-17). Then the patience is applied,
+  the manner line redrawn, the slip (row 20): the item with the biggest
+  cost speaks if it has a slip of its own (else the biggest gain), else
+  the next slip of the band of the net change. A cost that leaves him at
+  5 or less puts a cold line on row 19. A low AY note for a cost, a higher
+  one for a gain. If this stamp burnt the candle out, row 21 says so.
+- A redrawn half is drawn with its rows' colours black (a copy in abuf),
+  then shown at once; the whole desk with `veil`, as before.
+
+### The Mayor's patience
+
+`pat` (0-12) and `dismissed` sit below C000h. Night One sets 12; later
+nights add 2 (code in place, NIGHT_N > 1). Manner bands 10-12, 6-9, 3-5,
+1-2. At 0 (after a stamp, or after the parade's record, or a bare book
+at the end): "Mayor Ellis holds out his hand." and the dismissal; then
+Mr Agnew stamps the remaining witnesses (each 48, 24, 12, 6, 6 frames:
+about 3 seconds for four), the Mayor arranges the parade (the first
+option of each choice: told, alone, into the room; no record screen; the
+fit in Agnew's hand, `par_ag`). `agnew` is the first case he stamped.
+Dismissal is permanent (later nights: by the fire, the pocket-book: not
+built).
+
+### Persistent state (below C000h, for the trial)
+
+`pat`, `dismissed`, `night_fflag` (16: 0 not found, 1 found and let lie,
+2 + the way written), `par_wr`, `par_ag`, `agnew`. One night's worth so
+far: Night Two will need its own copies (about 20 bytes a night).
 
 - Step 1, the night format (done): case order, agreements, stamp choices,
   patience on every finding and parade record line, the witnesses'
@@ -210,12 +324,12 @@ raw; bank 3 goes packed, 3222 bytes for 6731).
 | art/prologue_art.py | The three prologue pictures (house, window, grave) |
 | art/portraits.py | Portraits, 10 x 12 characters (Isobel) |
 | art/font.py, art/zx0.py | From Night Porter: the 6-pixel font, the ZX0 wrapper |
-| src/night.asm | The night's screens: hub, statement reader, compare, book |
+| src/night.asm | The night's screens (v0.8): orders card, the desk, stamp, parade, ledger, book |
 | scripts/night.py | Compiles data/nightN.py to src/night.inc |
 | data/night1.py | Night One in the night format (draft content) |
 | scripts/nightcheck.py | Checks a night and lists what the clerk can find |
 | tools/simtest.py | From Night Porter: headless test runner (SkoolKit) |
-| tools/keytest.py | Runs tools/tests/*.keys, compares with tools/ref/*.png (snapshot at `game`, after boot) |
+| tools/keytest.py | Runs tools/tests/*.keys, compares with tools/ref/*.png (snapshot at `game`, after boot); `poke` lines (v0.8) |
 
 ## The script engine
 
@@ -309,16 +423,20 @@ accused says, typed after the fit every time.
 ## Memory plan
 
 v0.7 (decided 26 Nov): Night Porter's way, the boot stub, the ROM loader
-and the IM2 table in each bank.
+and the IM2 table in each bank. v0.8: the desk made the code 8739 bytes
+(6000h-8222h; 15837 free below C000h); Night One's bank is 8101 bytes of
+text and tables, Kate to E0BBh, 5893 free under PSCR (4151 bytes packed
+on the tape). The AY sounds are direct register writes (`aysnd`, a few
+bytes each), no player.
 
 | Where | What |
 |---|---|
 | 5B00h-5BFFh | The stack, once IM2 is on (BASIC's done with) |
-| 6000h-7831h | The code: engine, night screens, ZX0 decoder, font, tables, variables, abuf (6194 bytes) |
-| 7832h-BFFFh | Free: 18382 bytes, for Nights Two and Three's screens and the trial |
+| 6000h-8222h | The code: engine, the desk and night screens, ZX0 decoder, font, tables, variables, abuf (8739 bytes, v0.8) |
+| 8223h-BFFFh | Free: 15837 bytes, for Nights Two and Three's screens and the trial |
 | C000h, bank 0 | Nothing yet but the IM2 table (the AY player, later) |
 | bank 1 | SBUF C000h-CC0Ch, chunks, pictures, Isobel; ends E06Eh, 5970 free under PSCR |
-| bank 3 | Night One C000h-D934h, Kate to DA4Ah; 7541 free under PSCR |
+| bank 3 | Night One C000h-DFA4h (v0.8), Kate to E0BBh; 5893 free under PSCR |
 | banks 4, 6, 7 | Night Two, Night Three, the trial (each with its portraits); free now |
 | F7C0h-FBF7h | PSCR, the portrait scratch, in any bank that holds a portrait |
 | FDFDh-FF00h | The IM2 jump (JP isr) and table, in banks 0, 1, 3, 4, 6, 7 |
@@ -403,7 +521,7 @@ Willson -> John Wilson, Donaldson -> Hugh Gilmour.
      what (a line by proportion, in period voice: most of what was there to
      be seen is in the record / much is not / almost none of it), never a
      count or the findings themselves. Draft lines to be shown first.
-   Build order: banks; the patience in Night One; Nights Two and Three
+   Build order: banks; the patience in Night One (done, v0.8); Nights Two and Three
    (with portraits); the trial; the end. The design for all of it was
    decided on 27 Nov: see "Stage 2 design" below.
 4. Banks and the boot stub: done in v0.7. AY music (a slow theme, a
@@ -411,6 +529,31 @@ Willson -> John Wilson, Donaldson -> Hugh Gilmour.
    `isr`, which pages it in and puts `curbank` back.
 
 ## Testing
+
+v0.8: the hub tests (apron, candle, parade) went with the hub. Seven
+tests, every screen looked at before its reference was written:
+- prologue: title to the Mayor's orders (16 SPACEs reach the desk now).
+- credits: as before (the version reads v0.8 slice).
+- desk: a whole Night One written honestly: Dickey as sworn, Wilson word
+  for word (842: the box 2 frames after the key), Gilmour's agreement,
+  Lowry as sworn, Margaret Wylie's two questions and answers, Gordon's
+  question and agreement, the parade quiet / among / room with both lines,
+  the ledger (patience 6, a stub of candle), the book's two pages, names.
+- nav: Q/A and P/L over page edges, 1-9 (ignored past the case), SPACE
+  with no book, a pair compared twice, the stamp list's 1 cycling and X.
+- candle: 22 compares that find nothing (NO BEARING), the candle out, a
+  compare refused, the stamp still works.
+- patience (poke pat=7 before Margaret Wylie's stamp): the cold lines,
+  the 3-5 and 1-2 manner lines, Gordon's own slip, dismissed after the
+  parade, the ledger's goodnight the dismissal.
+- agnew (poke pat=2 before Wilson's stamp): the dismissal, Mr Agnew's
+  stamps, the Mayor's parade, the ledger and book in Agnew's colour.
+- bare (poke pat=11): everything as sworn, ENTER then X at Lowry, the
+  parade's lines left out: the bare book costs 2 (the goodnight drops a
+  band), "Nothing but what was sworn."
+keytest.py's `poke F LABEL=VALUE` sets a byte at a frame (labels from
+main.sym); simtest.py logs every AY write with its frame (in its
+_ay.txt).
 
 v0.7: parade.keys' arranging screen (frame 1210) now has Kate's portrait
 (reference updated after looking at it). keytest's snapshot is taken at `game` (after the stub has loaded the
