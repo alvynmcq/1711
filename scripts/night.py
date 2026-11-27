@@ -46,14 +46,24 @@ RESULT_MAX = 4                        # compare screen: lines of a finding (rows
 HUBROW = 6
 NUMBERS = ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN"]
 NOBEAR = "These two lines do not bear on one another."
+# Mayor Ellis's patience (stage 2): a byte, 0-12; Night One starts at 12,
+# +2 overnight; desk gains at most GAIN_MAX a night; the manner line's
+# bands start at BANDS (10-12, 6-9, 3-5, 1-2); at 0 he takes the pen
+PAT0, PATMAX, GAIN_MAX, BANDS = 12, 12, 3, (10, 6, 3, 1)
 
 
 def load(n):
+    """The night's data, its statements put in case order ("order")."""
     path = os.path.join(ROOT, "data", "night%d.py" % n)
     spec = importlib.util.spec_from_file_location("night", path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    return mod.NIGHT
+    night = mod.NIGHT
+    by_id = {st["id"]: st for st in night["statements"]}
+    order = night.get("order", list(by_id))
+    assert sorted(order) == sorted(by_id), "order must list every statement once"
+    night["statements"] = [by_id[i] for i in order]
+    return night
 
 
 def asm_str(s):
@@ -77,26 +87,62 @@ def clauses_of(night):
     return out
 
 
+KINDS = ("differ", "agree", "copy")    # THEY DIFFER, THEY AGREE, WORD FOR WORD
+
+
+def kind_of(key):
+    return "copy" if key.startswith("copy:") else None
+
+
 def findings_of(night):
-    """Every meaningful pair: {(s0, c0, s1, c1): key}, and the keys in order."""
+    """Every pair of lines in two different statements that means something:
+    {(s0, c0, s1, c1): key} with s0 < s1 (s1 is the case it is found at),
+    the keys in order, and {key: kind}. A copied line is WORD FOR WORD; the
+    same claim with another value THEY DIFFER, with the same value THEY
+    AGREE. A claim may not both agree and differ (one key, one kind)."""
     sts = night["statements"]
     cl = clauses_of(night)
     every = [(s, c) for s in range(len(sts)) for c in range(len(cl[s]))]
-    pairs, keys = {}, []
+    pairs, keys, kinds = {}, [], {}
     for (s0, c0), (s1, c1) in itertools.combinations(every, 2):
+        if s0 == s1:
+            continue
         t0, k0, v0 = cl[s0][c0]
         t1, k1, v1 = cl[s1][c1]
-        key = None
-        if s0 != s1 and t0 == t1:
+        key = kind = None
+        if t0 == t1:
             copy = sts[s1] if sts[s1].get("copy_of") == sts[s0]["id"] else sts[s0]
-            key = "copy:" + copy["id"]
-        elif k0 and k0 == k1 and v0 != v1:
-            key = k0
+            key, kind = "copy:" + copy["id"], "copy"
+        elif k0 and k0 == k1:
+            key, kind = k0, ("differ" if v0 != v1 else "agree")
         if key:
+            assert kinds.get(key, kind) == kind, "claim %s both agrees and differs" % key
+            kinds[key] = kind
             pairs[(s0, c0, s1, c1)] = key
             if key not in keys:
                 keys.append(key)
-    return pairs, keys
+    return pairs, keys, kinds
+
+
+def case_of(pairs):
+    """{key: the case (statement index) it is found at}; each key at one only."""
+    out = {}
+    for (s0, c0, s1, c1), key in pairs.items():
+        assert out.get(key, s1) == s1, "finding %s can be found at two cases" % key
+        out[key] = s1
+    return out
+
+
+def check_findings(night, keys):
+    texts = night.get("findings", {})
+    missing = [k for k in keys if k not in texts]
+    assert not missing, "findings with no text: %s" % ", ".join(missing)
+    unused = [k for k in texts if k not in keys]
+    assert not unused, "text for findings that never happen: %s" % ", ".join(unused)
+    for k, f in texts.items():
+        assert 1 <= len(f["write"]) <= 2, "%s: one or two ways to write it" % k
+        for menu, book, pat, slip, answer in f["write"]:
+            assert -12 <= pat <= 12 and book
 
 
 def paginate(lines):
@@ -182,13 +228,13 @@ def compile_parade(night):
     for i, (_, t) in enumerate(seen):
         out += block("pn_%d" % i, t, 3)
     out.append("par_rec: dw " + ",".join("pr_%d" % i for i in range(len(rec))))
-    for i, (_, t) in enumerate(rec):
+    for i, (_, t, _) in enumerate(rec):
         out += block("pr_%d" % i, t, 2)
     out += block("par_fit", p["fit"], 3)
     out.append("par_combo:")
     for combo in range(1 << len(names)):
         pick = {k: p["choices"][k][1][(combo >> i) & 1][0] for i, k in enumerate(names)}
-        hits = lambda lst: [i for i, (cond, _) in enumerate(lst)
+        hits = lambda lst: [i for i, (cond, *_) in enumerate(lst)
                             if all(pick[k] == v for k, v in cond.items())]
         sm, rm = hits(seen), hits(rec)
         # the scene: a line per choice, a blank, the fit, a blank, what was seen
@@ -211,12 +257,12 @@ def compile_night(n):
     sts = night["statements"]
     assert len(sts) <= 9, "keys 1-9 pick a statement"
     cl = clauses_of(night)
-    pairs, keys = findings_of(night)
-    texts = night.get("findings", {})
-    missing = [k for k in keys if k not in texts]
-    assert not missing, "findings with no text in night%d.py: %s" % (n, ", ".join(missing))
-    unused = [k for k in texts if k not in keys]
-    assert not unused, "text for findings that never happen: %s" % ", ".join(unused)
+    pairs, keys, kinds = findings_of(night)
+    check_findings(night, keys)
+    # the v0.7 reader knows contradictions and copies only (the desk, next)
+    pairs = {p: k for p, k in pairs.items() if kinds[k] != "agree"}
+    keys = [k for k in keys if kinds[k] != "agree"]
+    texts = {k: (f["write"][-1][1], f["write"][-1][1]) for k, f in night["findings"].items()}
     assert len(pairs) < 256 and 1 <= len(keys) <= 16   # night_fflag holds 16
 
     out = ["; generated by scripts/night.py from data/night%d.py" % n,

@@ -10,6 +10,16 @@ Based on the trial documents edited by Andrew Sneddon and Shannon Devlin
 w1711 graphic novel (CC BY-NC-ND) was read for research only: nothing from
 it is used.
 
+## What v0.8 has (stage 2, under way)
+
+Building stage 2's steps 1-5 for Night One (see "Stage 2 design" below).
+
+- Step 1, the night format (done): case order, agreements, stamp choices,
+  patience on every finding and parade record line, the witnesses'
+  answers, the Mayor's lines; nightcheck.py prints the items per case and
+  three paths' patience. The v0.7 hub still ran on it (agreements left
+  out; the compare screen showed the book wording).
+
 ## What v0.7 has
 
 v0.7: the banks and the boot stub (see Memory plan). Moving into banks
@@ -218,35 +228,49 @@ moonlight.
 
 ## The night format (data/nightN.py)
 
+- **order** (v0.8): the statement ids in the order the witnesses come to
+  the table, one closed case each; the parade comes last. night.py puts
+  the statements in this order, so a statement's number is its case.
 - **statements**: each has an id, who, when sworn, and lines. A line is
   text, or `(text, claim, value)`. Two statements giving the same claim
-  different values are a contradiction the clerk can flag. A claim must
-  appear in at least two statements (a copy counts as its original):
-  nightcheck.py warns about one that doesn't. Otherwise make it plain text.
+  different values: THEY DIFFER; the same value: THEY AGREE (v0.8,
+  agreements: `never_seen`, Dickey and Gilmour; `fit_on_sight`, Dickey and
+  Gordon). A claim never both agrees and differs (night.py checks). A
+  claim must appear in at least two statements (a copy counts as its
+  original): nightcheck.py warns about one that doesn't.
 - **dates**: every Night One statement shows "Sworn 3rd March". The real
   sources are listed in data/night1.py (Gilmour's is from 5 March; Lowry's,
   Margaret Wylie's and Gordon's come from Tisdall's account and the 1822
   narrative), and the credits say "Dates and order compressed". A statement
   with `copy_of` repeats another word for word, as two of the real
-  depositions do ("agreeth with the above, word for word"); the game
-  should let the clerk notice that.
-- **parade** (format changed in v0.3: each choice is (heading, options),
-  each option (name, menu text, scene sentence); "fit" is the line the
-  Mayor gives; "seen" lines are what the clerk notices, which keep an
-  ordinary explanation in view; night.py works out, for each of the 2^n
-  arrangements, which seen and record lines apply, and checks the scene
-  and record screens fit): the accused, an intro, and choices the clerk makes about how
-  she is brought (tell Isobel or not, alone or among others, into the room
-  or only to the door). `always` is what happens whatever you choose (the
-  fit, as sworn). `record` lists what the clerk can honestly write down
-  for each arrangement. That record feeds the indictment at the end.
-- **findings**: for every contradiction (by claim name) and every copied
-  statement ("copy:<id>"), what the clerk sees when he compares the two
-  lines, and what goes in the book if he writes it. night.py refuses a
-  finding with no text, or text for a finding that can't happen. Findings
-  say what was sworn; they never say who lied, or that anyone was a witch.
+  depositions do ("agreeth with the above, word for word"): WORD FOR WORD.
+- **findings** (v0.8): keyed by claim, or "copy:<id>". A finding belongs to
+  the case of the later of its two statements (night.py checks it can be
+  found at one case only; at most three at a case, keys 1-3). Each has a
+  `label` (the stamp list's heading) and `write`, one or two ways to write
+  it: (menu, book text, patience, slip or None, answer or None). "Let it
+  lie" is always added last (nothing written, no cost). An answer makes it
+  a question put to the witness at the table: typed, and written in the
+  book. Findings say what was sworn; they never say who lied, or that
+  anyone was a witch; the answers smooth the gap over.
+- **parade**: each choice is (heading, options), each option (name, menu
+  text, scene sentence); "fit" is the line the Mayor gives; "seen" lines
+  are what the clerk notices, which keep an ordinary explanation in view;
+  "spoken" is what the accused says, typed after the fit every time.
+  `record` (conditions, text, patience) lists what the clerk can honestly
+  write for each arrangement; night.py works out, for each of the 2^n
+  arrangements, which seen and record lines apply, and checks the screens
+  fit.
+- **orders** (v0.8): the Mayor's order for the night (a card before the
+  first witness); **next_orders**: the next night's, at the end of the
+  ledger.
+- **mayor** (v0.8): manner lines by band, slips by cost ("gain", "none",
+  "small" -1, "middle" -2, "large" -3 or worse), "cold" lines (above a
+  slip when a cost leaves him at 5 or less), goodnight lines by band, the
+  dismissal, the bare-book cost.
+- **paths** (v0.8): nightcheck.py's three paths, what each writes.
 - **people**: the clerk's index of names for the night.
-- **candle** (v0.5): the night's candle in units, 1-16 (see above).
+- **candle** (v0.5): the night's candle in units (see The candle).
 
 scripts/night.py works out everything the Z80 would find awkward: it wraps
 each clause to 40 characters (column 1 on), cuts statements into pages of

@@ -25,6 +25,10 @@ NIGHT = {
     # finding out burns 2 more; at most 16 (it is drawn a pixel a unit)
     "candle": 16,
 
+    # stage 2: the witnesses come to the table in this order, one closed
+    # case each (statement ids); the parade comes last
+    "order": ["dickey", "wilson", "gilmour", "lowry", "wylie_m", "gordon"],
+
     # -------------------------------------------------------------
     # Statements. A line is plain text, or (text, claim, value).
     # Two claims with the same name and different values are a
@@ -40,10 +44,11 @@ NIGHT = {
              "and night by witches.",
              "That by the description she gave of them, they sent for Janet Boyd and "
              "Bessie Shaw on Friday last.",
-             "That when they came into the room she fell into a violent fit, and said "
-             "that as soon as she saw them she was stung to the heart.",
+             ("That when they came into the room she fell into a violent fit, and said "
+              "that as soon as she saw them she was stung to the heart.", "fit_on_sight", "yes"),
              "That a great many other women were present when she challenged them.",
-             "That she never saw them in her lifetime before her trouble.",
+             ("That she never saw them in her lifetime before her trouble.",
+              "never_seen", "yes"),
          ]},
         {"id": "wilson", "who": "John Wilson, of Islandmagee", "sworn": "3rd March",
          "copy_of": "dickey"},      # the same words exactly: the engine shows the copy
@@ -54,7 +59,8 @@ NIGHT = {
              "Halliday fall into fits as if she had been dead.",
              "That in one fit she said 'So and so', and after told them a woman came "
              "to the bedside and asked her, 'Molly Halliday, how do you do?'",
-             "That she gave the marks of one Janet Boyd, whom she had never seen.",
+             ("That she gave the marks of one Janet Boyd, whom she had never seen.",
+              "never_seen", "yes"),
              "That she heard her tormentors name one another: Janet Moore, Katty, "
              "Janet Kerr, and one McAlexander.",
              ("That Janet Moore was sent for about the first instant, and no one in "
@@ -90,8 +96,8 @@ NIGHT = {
               "and went down himself before her.", "moore_expected", "yes"),
              "That whilst he sat talking with Miss Halliday, before Janet Moore was "
              "seen, she said a great terror and heat came upon her.",
-             "That when Janet Moore came to the door she cried out her name, and three "
-             "strong men could scarcely hold her in the bed.",
+             ("That when Janet Moore came to the door she cried out her name, and three "
+              "strong men could scarcely hold her in the bed.", "fit_on_sight", "yes"),
          ]},
     ],
 
@@ -141,45 +147,157 @@ NIGHT = {
                   "home to my mother now?'",
         "fit": "Kate Rankin was brought, and Isobel fell into fits and said, "
                "'That is one of them.'",
-        "record": [   # (conditions, what the clerk may write)
-            ({"warn": "tell"}, "She was told beforehand who was coming."),
-            ({"warn": "quiet", "where": "door"}, "Kate was unseen by her, at the house door only."),
+        "record": [   # (conditions, what the clerk may write, Mayor's patience)
+            ({"warn": "tell"}, "She was told beforehand who was coming.", -2),
+            ({"warn": "quiet", "where": "door"}, "Kate was unseen by her, at the house door only.",
+             -1),
             ({"warn": "quiet", "where": "door"},
-             "Her name was spoken in the hall before Kate reached the door."),
-            ({"crowd": "among", "where": "room"}, "She singled Kate out from among six women."),
+             "Her name was spoken in the hall before Kate reached the door.", -2),
+            ({"crowd": "among", "where": "room"}, "She singled Kate out from among six women.",
+             +2),
             ({"crowd": "among", "where": "room"},
-             "Kate was the youngest of the six, and like her mother."),
-            ({"crowd": "alone", "where": "room"}, "Kate was brought to her alone."),
+             "Kate was the youngest of the six, and like her mother.", -2),
+            ({"crowd": "alone", "where": "room"}, "Kate was brought to her alone.", 0),
         ],
     },
 
     # -------------------------------------------------------------
-    # What the clerk sees when two marked lines are compared, and what
-    # goes in the book if he writes it down. Keyed by claim name for a
-    # contradiction, or "copy:<id>" for a statement sworn word for word
-    # the same as another. scripts/night.py refuses a finding with no
-    # text here. Plain statements of what was sworn: the clerk does not
-    # say who is lying, and nothing here says the accused did anything.
+    # The findings (stage 2, the desk). Keyed by claim name (two
+    # statements giving the claim different values: THEY DIFFER; the
+    # same value: THEY AGREE) or "copy:<id>" (a statement sworn word for
+    # word the same as another: WORD FOR WORD). A finding belongs to the
+    # case of the later of its two statements, and goes "in hand" when
+    # the clerk compares the pair. At the stamp each one is toggled
+    # between its ways of writing it and "Let it lie" (always last,
+    # nothing written, no cost).
+    #
+    #   label    the stamp list's heading for it (one line)
+    #   write    [(menu, book text, patience, slip or None, answer or None)]
+    #            menu: the option (the stamp list puts them side by side)
+    #            book: what goes in the clerk's book
+    #            patience: what it does to Mayor Ellis's patience
+    #            slip: what he says (None: one from "mayor" by the cost)
+    #            answer: a question put: what the witness at the table
+    #                    answers, typed, and written in the book after it
+    #
+    # Plain statements of what was sworn: the clerk does not say who is
+    # lying, and nothing here says the accused did anything. The answers
+    # smooth the gap over; none of them says who was right.
     # -------------------------------------------------------------
     "findings": {
-        "apron_knots": (
-            "Margaret Lowry saith five knots. Margaret Wylie saith nine. "
-            "It is the one apron.",
-            "Of the apron: Margaret Lowry saith it was tied with five knots, "
-            "Margaret Wylie saith nine."),
-        "moore_expected": (
-            "Hugh Gilmour saith none in the house knew Janet Moore was coming. "
-            "Mr Gordon saith he sent for her himself, and went down before her.",
-            "Mr Gordon himself sent for Janet Moore, and sat with Miss Halliday "
-            "before she came. Gilmour saith none knew."),
-        "apron_found_by": (
-            "Margaret Lowry saith she found the apron herself. Margaret Wylie "
-            "saith Miss Halliday was the first who found it.",
-            "Of the apron: Margaret Lowry saith she found it; Margaret Wylie "
-            "saith Miss Halliday found it first."),
-        "copy:wilson": (
-            "Line for line, John Wilson swears the same words as William Dickey.",
-            "John Wilson's statement agreeth with William Dickey's, word for word."),
+        "copy:wilson": {
+            "label": "John Wilson's words are Dickey's",
+            "write": [
+                ("Corroborates", "John Wilson corroborates William Dickey.",
+                 +1, "'Two witnesses. The law is satisfied.'", None),
+                ("Word for word", "John Wilson's statement is William Dickey's, "
+                 "word for word.",
+                 -2, "'Two honest men may swear alike, sir.'",
+                 "'I swear to what William swore. It is true, so it is the same.'"),
+            ]},
+        "never_seen": {
+            "label": "Never seen before her trouble",
+            "write": [
+                ("Note it", "Hugh Gilmour agreeth with William Dickey: she had never "
+                 "seen them before her trouble.", +1, None, None),
+            ]},
+        "apron_knots": {
+            "label": "The apron: five knots or nine",
+            "write": [
+                ("Put the question", "Of the apron: Margaret Lowry saith it was tied "
+                 "with five knots, Margaret Wylie saith nine.",
+                 -1, "'Five or nine, it was knotted. Write on.'",
+                 "'Nine, sir. Meg was frighted and miscounted.'"),
+            ]},
+        "apron_found_by": {
+            "label": "The apron: who found it",
+            "write": [
+                ("Put the question", "Of the apron: Margaret Lowry saith she found it; "
+                 "Margaret Wylie saith Miss Halliday found it first.",
+                 -2, None,
+                 "'Miss Halliday found it. Meg only brought it to the parlour.'"),
+            ]},
+        "moore_expected": {
+            "label": "Was Janet Moore expected?",
+            "write": [
+                ("Put the question", "Mr Gordon himself sent for Janet Moore, and sat "
+                 "with Miss Halliday before she came. Gilmour saith none knew.",
+                 -3, "'Mr Gordon is a minister of the Gospel.'",
+                 "'I sent for her as a neighbour. I said nothing of it to the girl.'"),
+            ]},
+        "fit_on_sight": {
+            "label": "Fits at the sight of them",
+            "write": [
+                ("Note it", "Mr Gordon agreeth with William Dickey: she fell into "
+                 "fits at the sight of them.", +1, None, None),
+            ]},
+    },
+
+    # -------------------------------------------------------------
+    # Mayor Ellis (stage 2). His patience is one hidden byte, 0-12;
+    # Night One starts at 12. Never shown as a number: only by his manner
+    # (a line at the top of the desk, by band) and what he says after
+    # each stamp (a slip). Gains from the desk (agreements, the copy as
+    # corroboration) count at most GAIN_MAX a night; the parade's don't.
+    # -------------------------------------------------------------
+    "orders": "'Take down what is sworn. Where two swear alike, note it: "
+              "the law wants two.'",
+    "mayor": {
+        # by patience: 10-12, 6-9, 3-5, 1-2 (one line each, beside the candle)
+        "manner": ["The Mayor warms his hands at the fire.",
+                   "The Mayor reads over your shoulder.",
+                   "The Mayor stands at your elbow.",
+                   "The Mayor has his hand on the book."],
+        # after a stamp, by what it did to his patience, when the costliest
+        # item has no slip of its own (one line each; taken in turn)
+        "slips": {
+            "gain":   ["He helps himself to Hugh Wylie's brandy.",
+                       "'There. That is the way of it.'",
+                       "'Neatly put. I may tell the Bishop.'"],
+            "none":   ["'Good. Call the next.'",
+                       "Mayor Ellis nods, and calls the next."],
+            "small":  ["He drums his fingers on the table.",
+                       "'Write on, sir.'"],
+            "middle": ["'Must you?'",
+                       "'Ink is dear, and so is my evening.'"],
+            "large":  ["'Thrice Mayor, sir, and never a question.'",
+                       "He says nothing at all."],
+        },
+        # above the slip, when a cost leaves him at 5 or less
+        "cold": ["He does not look at you.",
+                 "'I begin to wonder whose clerk you are.'"],
+        # the ledger, by band (10-12, 6-9, 3-5, 1-2)
+        "goodnight": ["'A good night's work. Sleep well, sir.'",
+                      "'Goodnight. Fewer questions tomorrow.'",
+                      "He takes the book from you without a word.",
+                      "'Tomorrow you write what is sworn, sir, or Mr Agnew will.'"],
+        # at 0 (Agnew is an invented deputy)
+        "dismiss": "'Give me the pen. Mr Agnew will write. You may sit by the "
+                   "fire and warm your scruples.'",
+        "bare": -2,           # the book holds only the fit at the night's end
+    },
+    # the ledger ends with the next night's order
+    "next_orders": "'Tomorrow the girl's sight is evidence. Where she saw a "
+                   "shape, write that the woman appeared to her.'",
+
+    # -------------------------------------------------------------
+    # nightcheck.py's three paths: what each writes. desk: finding ->
+    # option (0 the first way of writing it; None let it lie; not listed:
+    # never compared). parade: the arrangement and which record lines are
+    # written ("all", or a list of their texts' first words).
+    # -------------------------------------------------------------
+    "paths": {
+        "everything": {
+            "desk": {"copy:wilson": 1, "never_seen": 0, "apron_knots": 0,
+                     "apron_found_by": 0, "moore_expected": 0, "fit_on_sight": 0},
+            "parade": ("quiet", "among", "room"), "lines": "all"},
+        "collaborator": {
+            "desk": {"copy:wilson": 0, "never_seen": 0, "fit_on_sight": 0},
+            "parade": ("quiet", "among", "room"), "lines": ["She singled"]},
+        "balanced": {
+            "desk": {"copy:wilson": 0, "never_seen": 0, "fit_on_sight": 0,
+                     "moore_expected": 0, "apron_found_by": 0, "apron_knots": None},
+            "parade": ("quiet", "among", "room"), "lines": "all"},
     },
 
     # people named this night, for the clerk's index (game names)
