@@ -21,9 +21,11 @@ NIGHT = {
     "n": 1,
     "date": "3rd March 1711",
     "place": "Braehead House, Islandmagee",
-    # one candle for the night (v0.5): each compare burns 1, writing a
-    # finding out burns 2 more; at most 16 (it is drawn a pixel a unit)
-    "candle": 16,
+    # one candle for the night: each compare burns 1, writing an item
+    # out burns 2 more; at most 25 (drawn a pixel a unit, column 31, rows
+    # 0-3). v0.8: finding and writing all six items costs 18 at the least;
+    # 22 leaves 4 for compares that find nothing, as v0.5 did
+    "candle": 22,
 
     # stage 2: the witnesses come to the table in this order, one closed
     # case each (statement ids); the parade comes last

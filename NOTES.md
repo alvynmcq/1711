@@ -31,6 +31,14 @@ Building stage 2's steps 1-5 for Night One (see "Stage 2 design" below).
   dismissed after the parade), bare.keys (nothing written: the bare book
   shows in the goodnight). simtest.py now logs every AY write with its
   frame: the compare's thump is written the frame after the key.
+- Step 4, the parade's costs and the candle (done): each parade record
+  line carries its patience (told beforehand -2, unseen at the door -1,
+  name spoken in the hall -2, singled out +2, like her mother -2, alone
+  0); after the record the Mayor's slip, as after a stamp. The candle is
+  22 (was 16): finding and writing all six items costs 18 at the least,
+  leaving 4 for compares that find nothing, as v0.5 did. It is drawn in
+  column 31, rows 0-3 now (at most 25 units), and statement text wraps at
+  39 so it never touches it.
 
 ## What v0.7 has
 
