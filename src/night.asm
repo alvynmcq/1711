@@ -1690,7 +1690,7 @@ lg5:    ld hl,lt_par
         ld a,e
         call lg_row
 lg6:    ld hl,lt_cdl        ; the candle, in words
-        ld bc,8*256+1
+        ld bc,9*256+1
         ld a,TXT
         call strat
         ld a,(cdl)
@@ -1704,23 +1704,23 @@ lg6:    ld hl,lt_cdl        ; the candle, in words
         cp CDL_H+1
         jr c,lg7
         ld hl,lc_3
-lg7:    ld bc,8*256+18
+lg7:    ld bc,9*256+15
         ld a,07h
         call strat
         ld hl,lt_mayor      ; his goodnight, by his patience
-        ld bc,10*256+1
+        ld bc,11*256+1
         ld a,07h
         call strat
         ld a,(dismissed)
         or a
         jr z,lg8
-        ld b,11
+        ld b,12
         ld hl,txt_dismiss
         ld a,SEL
         call drawclause
         jr lg9
 lg8:    call band
-        ld b,11
+        ld b,12
         add a,a
         ld e,a
         ld d,0
@@ -1733,10 +1733,10 @@ lg8:    call band
         ld a,TXT
         call drawclause
 lg9:    ld hl,lt_next       ; and the next night's order
-        ld bc,15*256+1
+        ld bc,16*256+1
         ld a,46h
         call strat
-        ld b,16
+        ld b,17
         ld hl,txt_next
         ld a,07h
         call drawclause
@@ -1866,7 +1866,11 @@ bk_nx:  ld hl,bk_c
         inc (hl)
         jp bk_cs
 
-bk_par: ld a,(bk_n)         ; nothing written from the desk
+bk_par: ld a,(agnew)        ; after Mr Agnew's lines, a blank row
+        cp 0FFh
+        jr z,bk_p0
+        inc b
+bk_p0:  ld a,(bk_n)         ; nothing written from the desk
         or a
         jr nz,bk_p1
         ld hl,txt_bare

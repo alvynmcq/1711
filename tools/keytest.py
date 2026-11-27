@@ -19,6 +19,9 @@ A test (tools/tests/NAME.keys) is lines of:
   F KEY [KEY...]               hold these keys for 6 frames from frame F
   every F STEP COUNT KEY...    the same keys COUNT times, every STEP frames
   shot F [F...]                compare the screen at frame F
+  poke F LABEL=VALUE           at frame F, set the byte at LABEL (from
+                               src/main.sym) to VALUE (v0.8: e.g. pat=2,
+                               to test Mayor Ellis's patience running out)
   # anything                   a comment
 """
 import os
@@ -35,7 +38,7 @@ TESTS, REF, OUT = (os.path.join(TOOLS, d) for d in ("tests", "ref", "out"))
 
 
 def parse(path):
-    events, shots, frames = [], [], 1000
+    events, shots, frames, pokes = [], [], 1000, []
     for ln in open(path):
         w = ln.split("#")[0].split()
         if not w:
@@ -44,6 +47,9 @@ def parse(path):
             frames = int(w[1])
         elif w[0] == "shot":
             shots += [int(x) for x in w[1:]]
+        elif w[0] == "poke":
+            label, val = w[2].split("=")
+            pokes.append((int(w[1]), label, int(val, 0)))
         elif w[0] == "every":
             f, step, count = int(w[1]), int(w[2]), int(w[3])
             events += [(f + k * step, w[4:]) for k in range(count)]
@@ -53,15 +59,19 @@ def parse(path):
     for f, keys in events:
         assert f not in seen, "%s: two key events at frame %d" % (path, f)
         seen[f] = keys
-    return sorted(events), sorted(set(shots)), frames
+    return sorted(events), sorted(set(shots)), frames, pokes
+
+
+def symbol(name):
+    for ln in open(os.path.join(ROOT, "src", "main.sym")):
+        w = ln.split()
+        if len(w) == 3 and w[0] == name:
+            return int(w[2].rstrip("Hh"), 16)
+    raise SystemExit("no `%s` in src/main.sym: build first" % name)
 
 
 def game_address():
-    for ln in open(os.path.join(ROOT, "src", "main.sym")):
-        w = ln.split()
-        if len(w) == 3 and w[0] == "game":
-            return int(w[2].rstrip("Hh"), 16)
-    raise SystemExit("no `game` in src/main.sym: build first")
+    return symbol("game")
 
 
 def snapshot(tmp):
@@ -72,12 +82,13 @@ def snapshot(tmp):
 
 
 def run(name, snap, tmp, update, sheet):
-    events, shots, frames = parse(os.path.join(TESTS, name + ".keys"))
+    events, shots, frames, pokes = parse(os.path.join(TESTS, name + ".keys"))
     prefix = os.path.join(tmp, name)
     args = [sys.executable, os.path.join(TOOLS, "simtest.py"), snap, prefix]
     # SkoolKit names letter keys in lower case: "A" in a test is "a"
     args += ["%d:%s" % (f, " ".join(x.lower() if len(x) == 1 else x for x in k))
              for f, k in events]
+    args += ["%d:%d=%d" % (f, symbol(label), v) for f, label, v in pokes]
     args += ["--shots", ",".join(map(str, shots)), "--frames", str(frames)]
     subprocess.run(args, check=True, stdout=subprocess.DEVNULL)
     bad = []

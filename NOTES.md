@@ -23,6 +23,14 @@ Building stage 2's steps 1-5 for Night One (see "Stage 2 design" below).
   below). The Mayor's patience went in with it (the stamp needs it), and
   is checked on its own in step 3. The hub tests (apron, candle, parade)
   are gone with the hub; desk.keys plays a whole night.
+- Step 3, the Mayor's patience (done): the manner line, slips, cold lines,
+  the ledger, the bare book, dismissal and Mr Agnew. Night One can't take
+  him to 0 on its own numbers (the floor is 1: every cost, the worst
+  parade), so the tests poke `pat` (keytest's new `poke` line): agnew.keys
+  (dismissed at Wilson's stamp), patience.keys (cold lines, the low bands,
+  dismissed after the parade), bare.keys (nothing written: the bare book
+  shows in the goodnight). simtest.py now logs every AY write with its
+  frame: the compare's thump is written the frame after the key.
 
 ## What v0.7 has
 

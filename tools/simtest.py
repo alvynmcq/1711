@@ -76,6 +76,11 @@ class T(PagingTracer):
     def write_port(self, registers, port, value, offset):
         if port % 2 == 0 and (value ^ self.outfe) & 0x10:
             self.beeps += 1
+        if port & 0xC002 == 0xC000:         # FFFDh: select an AY register
+            self.outfffd = value
+        elif port & 0xC002 == 0x8000:       # BFFDh: write it
+            self.ay[self.outfffd % 16] = value
+            self.aylog.append((state['n'], self.outfffd % 16, value))
         PagingTracer.write_port(self, registers, port, value, offset)
 
 
@@ -123,8 +128,11 @@ def draw(scr, frame, border, keyboard):
     tr.keyboard = keyboard
     log.write("%5d pc=%04X sp=%04X 7ffd=%02X ay=%s beeps=%d\n" % (
         n, sim.registers[24], sim.registers[12], tr.out7ffd,
-        " ".join("%02X" % v for v in tr.ay[:11]), tr.beeps))
+        " ".join("%02X" % v for v in tr.ay[:14]), tr.beeps))
     tr.beeps = 0
+    for f, r, v in tr.aylog:            # every AY write, with its frame
+        log.write("      ay %5d R%d=%02X\n" % (f, r, v))
+    tr.aylog = []
     if n in shots:
         save(bytes(scr), "%s_%05d.png" % (prefix, n))
     return n < nframes

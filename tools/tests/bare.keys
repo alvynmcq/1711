@@ -1,0 +1,36 @@
+# A bare book (v0.8): nothing compared, nothing written. Every witness is
+# stamped ENTERED AS SWORN (at Lowry, ENTER then X goes back to the desk
+# first), the parade's lines are left out (N N), so the book holds only the
+# fit: it costs 2. Patience poked to 11 so the cost shows: the ledger's
+# goodnight is the 6-9 band's. The book: "Nothing but what was sworn."
+frames 1800
+every 60 40 16 SPACE
+poke 690 pat=11
+700 ENTER
+740 ENTER
+780 SPACE
+820 ENTER
+860 ENTER
+900 SPACE
+940 ENTER
+980 ENTER
+1020 SPACE
+1060 ENTER
+1100 X
+1140 ENTER
+1180 ENTER
+1220 SPACE
+1260 ENTER
+1300 ENTER
+1340 SPACE
+1380 ENTER
+1420 ENTER
+1460 SPACE
+1500 SPACE
+1540 SPACE
+1580 SPACE
+1620 N
+1660 N
+1700 SPACE
+1740 SPACE
+shot 1099 1139 1659 1699 1739 1790
