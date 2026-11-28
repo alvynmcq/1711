@@ -1,4 +1,4 @@
-# 1711 (working title): project notes, v0.9
+# 1711 (working title): project notes, v1.0
 
 A ZX Spectrum 128K game. You are Justice Lyle at the Carrickfergus
 Assizes, 31 March 1711: the one judge who argued for acquittal, and the
@@ -12,135 +12,187 @@ Based on the trial documents edited by Andrew Sneddon and Shannon Devlin
 w1711 graphic novel (CC BY-NC-ND) was read for research only: nothing from
 it is used.
 
-**Stage 3 (decided 27 Nov) replaced the clerk: the game is now the trial.**
-See "What v0.9 has" and "Stage 3: the courtroom", next. Everything from
-"What v0.8 has" down describes v0.8 and earlier (the desk, the nights),
-kept as history: that code is gone from the build (in git before 8d30225).
+**v1.0 (28 Nov) is the whole day**: the seven witnesses, Isobel brought
+in, the charges, the verdict. See "What v1.0 has", next, then "Stage 3:
+the courtroom" (the design). Everything from "What v0.8 has" down
+describes v0.8 and earlier (the desk, the nights), kept as history.
 
-## What v0.9 has (stage 3, the slice)
+## What v1.0 has (the day)
 
-The title, the prologue (its end rewritten for Lyle: the women taken to
-the gaol, the Assizes, three judges, no counsel, "You are Justice Lyle";
-then the Assizes card in place of the Night One card, without Isobel, so
-her one appearance will be in court), Margaret Lowry's cross-examination
-from six to seven, Lyle's notes, the slice's end, "What happened in 1711",
-the credits. The title now reads "...events, and the trial that
-followed." Title and credits say "v0.9 slice".
+The title, the prologue (as v0.9, then the Assizes card: "Eight women are
+accused. Seven witnesses will be heard, then the jury."; the court from
+the gallery; the accused in the dock, named), the day, the pillory and
+"What happened in 1711", the credits ("v1.0").
 
-- **The screen** as designed (see the table under Stage 3), with: the
-  hour marks are eight little candles in cells 26-31 of row 0 (x = 210 +
-  5i), each hour's burnt down to its dish; row 16's rule says "3 of 7"
-  (lines shown so far); row 22's keys show "X end" only on the last line
-  shown (the row has no room for it otherwise; X works on any line).
-- **O / P** a line: heard the first time (typed, 3 minutes), shown at once
-  after. **SPACE** presses (6 minutes, once a line; again: "She has
-  answered that."): Lyle's question in bright white, her answer under it,
-  SPACE; a press may draw out a hidden line (shown next and heard), or a
-  note. A line with no press gets "Go on, Mrs Lowry. What more?" / "It is
-  as I said, my lord." for the same 6 minutes: you can't tell which lines
-  hold more. **ENTER**: the record over the portrait (row 3 heading, rows
-  4-13 the facts, row 15 who swore the chosen one), Q / A or 1-0, ENTER
-  presents, X back. The chosen fact stays chosen between visits.
-- **HOLD, SIR!**: the border red and white 6 frames, the AY bell, rows
-  17-18 bright red, the letters twice as tall (bigstamp's `bigch`, 9
-  pixels apart, no box), Lyle's question on 19-20; SPACE: she falters (12
-  cells swapped straight to the screen) and answers; SPACE: Ormsby;
-  SPACE: "Let it be written:" and the note; SPACE: her face back, the line
-  again (8 minutes). The same fact again: "You have had that from her."
-- **A fact that doesn't bear**: Ormsby's own words for that pair if the
-  data has them (five knots presented against "nine knots" sworn by
-  Margaret Wylie: "They agree. You have helped the Crown."), else the next
-  rebuke; a low AY note; the bench -2, 10 minutes. At 0: "Brother Lyle,
-  you have said enough...", the manner line "You may not speak again
-  today.", the keys "O P lines / X let her go"; SPACE and ENTER get
-  "Ormsby: 'Brother.'"
-- **The clock**: minutes since six in `tr_t` (a word), the time in words
-  on row 1 to the five minutes below; an AY bell and a candle out each
-  hour; at seven (TR_END, 60) Ormsby stands her down. X, Y lets her stand
-  down sooner.
-- **Lyle's notes**: what was written, in order; "Nothing was written." if
-  nothing. Never how much there was to find (as decided 26 Nov).
+- **The day** (src/trial.asm, `trial`): tr_order in turn, one clock from
+  six till two (tr_t, minutes; TR_DAY = 480). Each witness: a card ("The
+  court calls ... He takes the oath.", the time on row 1), then the
+  cross-examination exactly as v0.9's (O/P, SPACE, ENTER, HOLD, SIR!, the
+  falter, the bench), until X Y, or the box's 80 minutes, or two o'clock
+  (the bell: Ormsby's "That is long enough" or "Two o'clock. Stand down.
+  The jury must retire"). A witness or scene not reached by two is not
+  heard. The bench's patience, the silencing, the rebukes in turn and
+  Lyle's notes last the whole day.
+- **The witnesses**: Margaret Lowry (v0.9's), Margaret Wylie, William
+  Dickey, John Wilson, Hugh Gilmour, Mr Robert Gordon, Mayor Ellis. Each
+  has a 16 x 14 portrait with its falter delta, its own Ormsby lines
+  (opening, after a HOLD, "He has answered that", stand down, the box's
+  bell), its own "Go on, Mr X. What more?" and its card. Presenting
+  against the Mayor costs the bench 3 even when it bears (a wrong fact 3
+  too); three HOLDs on him from a clean bench leave it at 3, and any
+  earlier mistakes mean he silences you.
+- **Isobel brought in** (a scene, between Gordon and the Mayor, 10
+  minutes): the picture, three pages (she cannot speak, looks about the
+  court, sinks against the woman beside her, is carried out; "No one asks
+  her anything. She is eighteen."). Never questioned.
+- **The record**: eleven facts on two pages (row 3 says "1 of 2"); Q/A
+  move across the page edge, 1-0 choose on the page shown. New fact 11:
+  "She described them; others named." (Dickey, 3rd March).
+- **The end of the day**: "The Crown calls no more witnesses" or the bell
+  at two; JUSTICE LYLE'S CHARGE: his notes in the order written (paged),
+  then what they come to (the spectral evidence put down, or only an
+  opinion), and the churchgoing if he has it; or, with nothing written,
+  he sits down. JUSTICE ORMSBY'S CHARGE (three paragraphs, a fourth if
+  Lyle shook the spectral evidence). The jury goes out. THE VERDICT,
+  double height, one accused at a time after a pause: NOT GUILTY in
+  bright white (the bell) or GUILTY in bright red (the low note). Then
+  one of three lines: all convicted / some / none.
+- **The verdict's rule** (`weigh`, `score`): the spectral evidence is
+  discredited when a "thirty" note and at least 3 spectral notes are
+  written (Upton: the jury could not convict on her visions alone). Then
+  each accused whose score reaches 10 is acquitted: a note on all of them
+  counts 1, a note on her 2. Otherwise all eight are convicted.
+- **After**: the pillory (distant, plain), "What happened in 1711": eight
+  women convicted, a year and four times in the pillory, pelted with eggs
+  and cabbage stalks; the judge who told the jury they could not convict
+  on visions alone was outvoted; "No one in this game was a witch. The
+  people in it stand in for real ones..."
 
 ### The numbers (trialcheck.py)
 
-Costs: a line heard 3, a press 6, HOLD 8, a wrong fact 10 and the bench
--2; the slice is 60 minutes. The best path (both contradictions, the
-spectral press, no wasted presses) ends at 6:49 with three notes; pressing
-every line runs out at seven with the apron's finder never raised; seven
-lines heard and pressed would take 63 minutes alone. Silencing can't
-happen inside an hour on these costs (it takes six wrong facts, 60
-minutes), so bench.keys pokes it; across a whole day it can.
+Costs (v1.0): a line heard 4, a press 8, HOLD 10, a wrong fact 12; 80
+minutes in the box; the day 480. (v0.9's 3/6/8/10 left hours to spare
+over a day: the best path ended at 11:09 and pressing everything at
+12:27, so two o'clock never mattered. A third more makes the day bite.)
+
+- the best (every note, 23): ends 12:42, the bench at 6 (the Mayor's two
+  HOLDs), the spectral evidence discredited, all eight acquitted.
+- a careful first play (hear and press everything, the three obvious
+  HOLDs): Lowry is cut short at 7:24, the Mayor at two; 13 notes;
+  discredited; Janet Boyd and Bessie Shaw acquitted, six convicted.
+- listen only: ends 8:30, nothing written, all convicted.
+- the Mayor pushed (two wrong facts early, then three HOLDs on him):
+  silenced at 8:24; all convicted.
+
+Notes: 23 (4 spectral: Lowry's Janet Boyd, Wylie's knife and her
+Patterson and Kerr, Gilmour's names; 2 of the thirty: Gilmour's, the
+Mayor's; 1 of the churchgoing: Gordon's). Kate Rankin, Janet Erskine,
+Jean Patterson and Margaret Ross have one note each on them alone, so
+they are acquitted only by a near-complete day.
 
 ### The trial format (data/trial.py, scripts/trial.py)
 
-- **record**: (id, fact, who, when); a fact at most 36 characters (the
-  record row: mark, number, fact), ten at most (keys 1-0).
-- **witnesses**: name, portrait, lines. A line: id, `say` (at most 4
-  rows), `hidden` (drawn out by a press), `press` (question, answer, the
-  line it draws out, a note, spectral), `holds` {fact: (question at most
-  2 rows, answer, Ormsby, the note at most 3 rows)}, `wrong` {fact:
-  Ormsby's own words}. The checker refuses "witch" in testimony.
-- **cost**, **bench** (start, wrong, manner by band, rebukes, the
-  silencing and the remarks, each one row), **press_none**, **paths**.
-- scripts/trial.py wraps every text to blocks (db rows, strings), works
-  out the time in words for every five minutes, six to two, and writes
-  src/trial.inc (tables in its docstring); build.py puts it in bank 3 and
-  its labels in src/trialsym.inc.
-- scripts/trialcheck.py prints the record, each line's press, holds and
-  own rebukes, and plays each path by the engine's rules (time, bench,
-  notes).
+- **record**: (id, fact, who, when); a fact at most 36 characters; at
+  most 20 (two pages).
+- **accused**: (id, name), at most 8 (a bit each in a note's mask).
+- **notes**: id -> note(text, bears "all" or accused ids, spectral,
+  thirty, character); every note must be written somewhere.
+- **order**: witness and scene ids in turn. **scenes**: picture, minutes,
+  pages (paragraphs; 8 rows under the picture).
+- **witnesses**: id, name (row 0), who, called, portrait, box, hold and
+  wrong (bench costs), opening, after_hold, asked, raised (one row each),
+  stand_down, bell, press_none; lines as v0.9, except a press is
+  (question, answer, line drawn out, note id) and a hold names a note id.
+- **verdict**: spectral, acquit, and every text of the end of the day.
+- **paths**: per witness, ("hear"|"press", line), ("present", line,
+  fact), ("hearall",), ("pressall",); a witness not named is heard and
+  let go.
+- scripts/trial.py checks it all (no "witch" anywhere in the trial's
+  texts) and writes src/trialc.inc (the common tables, below C000h) and
+  src/trialw_ID.inc per witness (its header, wh_ID, 29 bytes, copied to
+  `wh` when it is called; its lines). scripts/trialcheck.py plays the
+  paths through the whole day and prints the verdict for each.
 
-### Portraits (v0.9)
+### Portraits and pictures (v1.0)
 
-art/portraits.py: each portrait has its own size (Isobel and Kate 10 x
-12, Lowry 16 x 14); the block starts with its width and height, and
-`portrait` reads them. A witness returns two renders, steady and
-faltering; the cells that differ go to art/NAME_falter.bin (db cells;
-row, col, 8 bytes faltering, 8 as it was), pixels only: the steady
-colours stay, so the swap can't clash (one render had a cell BRIGHT the
-other didn't, so the colours are always the steady face's). script.py
-puts the delta after the packed portrait as `falter_NAME`.
-Lowry: a plain linen cap lit from the candle low on the left and lost in
-the dark on the right (no ring), a brown woollen bodice, a white
-kerchief; she looks up at the bench, mouth set. Faltering: brows lift,
-eyes drop and go aside, mouth opens. 504 bytes packed, the falter 217.
-Kate's portrait is still built (bank 3) but not shown.
+art/portraits.py `witness(spec)`: one build for all six new witnesses
+(the light's side, the dress, the head, the face's size, the eyes' look
+steady and faltering, the mouth, lines of age); the falter moves the
+brows, the eyes and the mouth only (10-12 cells, about 190 bytes).
+Margaret Wylie in a black hood, lips pressed; Dickey, a farmer, frank;
+Wilson, younger, lit from the other side, his eyes sliding towards
+Dickey; Gilmour, an elder, bald, lined; Gordon, the minister, skullcap
+and white bands; Mayor Ellis, periwig, the chain of office, a second
+chin, heavy-lidded and pleased (faltering: his mouth falls open). No red
+in any of them. Kate is out of the build (kate() kept).
 
-### Memory (v0.9)
+art/prologue_art.py: court (the bench, three judges, candles, the box,
+the dock, the gallery's rail), dock (eight women in their own caps and
+shawls, lit from below, no one marked out), isobel_in (between two women
+of the house, eyes closed, a pale gown), pillory (the castle, the town,
+the pillory far off with two figures bent in it, the crowd dark).
 
-Code 6000h-757Dh, 5502 bytes (19074 free below C000h): night.asm (2675
-lines) went, trial.asm came. PSCR moved to F5E0h (2018 bytes, a 16 x 14
-portrait, under the IM2 table at FDFDh) in every bank with a portrait.
-Bank 1: scripts and pictures and Isobel, ends E3B5h. Bank 3: the trial,
-5397 bytes, with Kate and Lowry, ends D8FEh (3173 bytes packed on the
-tape). The whole tape is 21419 bytes.
+### Memory (v1.0)
 
-### Tests (v0.9)
+Code and the common tables 6000h-946Ah, 13419 bytes (11157 free below
+C000h). build.py packs the witnesses into banks 3, 4, 6 in order, at most
+WFILL (7000) bytes a bank so each packs in place: bank 3 Lowry and
+Wylie, bank 4 Dickey, Wilson and Gilmour, bank 6 Gordon and the Mayor,
+each with its portraits (PSCR F5E0h). Bank 7: the trial's pictures. Bank
+1 as before (Isobel's portrait, the prologue's pictures, the scripts).
+witab (bank, header) is in banks.inc; pictures each have a bank
+(PIC_BANK), as portraits do. Tape 38917 bytes.
 
-The desk's tests went with it (desk, nav, candle, patience, agnew, bare).
-Four tests, every screen looked at before its reference was written:
-- prologue: the title (new subtitle) to the Assizes card and the trial's
-  first frame (15 SPACEs).
-- credits: as before, v0.9.
-- lowry: the slice played well (see the comment in lowry.keys): press
-  and the drawn-out line, both HOLD, SIR!s (the question, the falter, the
-  answer, Ormsby, the note, her face back), a fact with its own rebuke,
-  the spectral press, X Y, Lyle's notes, the end, 1711, the credits.
-- bench: two wrong facts (poke tr_pat=2 between): the rebukes, silenced,
-  the keys and remarks after; poke tr_t=58: the bell at seven, a candle
-  out, she stands down, "Nothing was written."
+### Tests (v1.0)
+
+Five tests; every screen looked at before its reference was written.
+keytest's poke takes LABEL+N (v1.0), for tables (tr_nflag+12=1).
+- prologue: as before; its last shots are the Assizes card and the court.
+- credits: v1.0.
+- lowry: v0.9's play of Lowry, 240 frames later (21 SPACEs reach her);
+  she stands down, Margaret Wylie is called.
+- bench: as before (tr_t poked to 78: the box's 80 minutes run out at
+  7:22, a candle out); Margaret Wylie is called.
+- witnesses: one HOLD each from Wylie to Gordon (the falters, the
+  record's second page, Q back to the first), then Isobel brought in.
+- verdict: dy_i and nine notes poked; Isobel; the Mayor's HOLD on the
+  thirty (the bench a band down); no more witnesses; both charges; the
+  verdict (Boyd and Shaw acquitted); "Some are acquitted"; the pillory;
+  1711; the credits.
+
+### Decided while you slept (28 Nov), to look at
+
+1. Costs 4/8/10/12 and 80 minutes a box (above). Easy to change in
+   data/trial.py; trialcheck.py shows the effect.
+2. The verdict's rule and its numbers (3 spectral + the thirty; 10 to
+   acquit), and that Lyle's charge recites his notes.
+3. The order of the day, and Isobel brought in just before the Mayor.
+4. Bessie Shaw is Janet Boyd's daughter (as Elizabeth Sellor was Janet
+   Liston's). Night One's parade had Kate Rankin as Boyd's daughter; the
+   trial doesn't say whose daughter Kate is.
+5. The witnesses' testimony and its drift, written from the depositions,
+   Tisdall's account (the fits, the tongue, the thirty, the churchgoing)
+   and invention (the kitchen talk, the carter, Wilson in the yard).
+6. The Mayor's humour: "I gave him the words. That is, I saw they were
+   plainly put", the carter who talks mostly to his horse, "The Mayor's
+   tests always work, brother. He tells us so himself."
+7. No notes screen between witnesses: what Lyle wrote is read out in
+   his charge at the end.
 
 ### Next
 
-1. Play it. Tune the costs and the typing speed (2 frames a letter: a
-   4-row line takes about 6 seconds; SPACE shows the rest at once).
-2. Margaret Wylie, Dickey and Wilson, Gilmour, Gordon, then Mayor Ellis
-   (presenting against him costs the bench -3) and Isobel brought in
-   once; the day's clock across them all instead of the slice's hour.
-3. The verdict: contradictions per accused and the spectral admissions;
-   Ormsby's summing-up; the jury; partial outcomes; the pillory picture.
-4. The establishing pictures: the court from the gallery, the accused in
-   the dock, Isobel brought in, the pillory.
+1. Play it: the costs, the verdict's numbers, the typing speed, the
+   portraits (the Mayor's wig is the weakest).
+2. A notes screen on demand (a key) during the day?
+3. AY music: a slow theme, the church bell (bank 0 is free).
+4. Test on real hardware and in FuseX.
+
+## What v0.9 had (the slice)
+
+Margaret Lowry's cross-examination from six to seven, then her notes, the
+slice's end and 1711. The engine, the screen and the keys carried over to
+v1.0 unchanged except as above. Its costs were 3/6/8/10 (best Lowry path
+6:49, three notes).
 
 ## Stage 3: the courtroom (decided 27 Nov)
 
@@ -198,11 +250,11 @@ and the testimony.
 
 ### The clock
 
-- 6:00 to 14:00 in 5-minute units (96, one byte). Eight marks top right,
+- 6:00 to 14:00 in minutes (tr_t, a word). Eight marks top right,
   struck off on the hour with the AY bell; the time in words on row 1
   ("A quarter past seven").
-- Costs (draft, for the checker to tune): a new line heard 5 min, a press
-  10, a presentation that bears 15, one that doesn't 20 and the bench -2.
+- Costs (v1.0): a new line heard 4 min, a press 8, a presentation that
+  bears 10, one that doesn't 12 and the bench -2 (the Mayor's 3).
   Budget about an hour a witness, so a full cross-examination of one
   witness can't fit if every line is pressed.
 - At two the jury retires: the witness in the box stops, Ormsby sums up,
@@ -784,7 +836,12 @@ Janet Carson -> Janet Moore; Janet Main -> Janet Kerr; Janet Latimer ->
 Janet Erskine; Janet Millar -> Jean Patterson; Margaret Mitchell ->
 Margaret Ross; "Mrs Ann" stays; Robert Sinclair -> Robert Gordon; Edward
 Clements -> Mayor Thomas Ellis; Justice Upton -> Justice Lyle; Justice
-MacCartney -> Justice Ormsby. Witnesses: Fenton -> William Dickey,
+MacCartney -> Justice Ormsby; Mr Adair (who sent Janet Latimer out from
+Carrickfergus) -> Mr Craig. v1.0's accused: Janet Liston -> Janet Boyd,
+Elizabeth Sellor -> Bessie Shaw (her daughter), Catherine McCalmond -> Kate
+Rankin, Janet Carson -> Janet Moore, Janet Main -> Janet Kerr, Janet
+Latimer -> Janet Erskine, Janet Millar -> Jean Patterson, Margaret
+Mitchell -> Margaret Ross. Witnesses: Fenton -> William Dickey,
 Willson -> John Wilson, Donaldson -> Hugh Gilmour.
 
 ## Next

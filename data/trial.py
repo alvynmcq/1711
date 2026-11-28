@@ -551,7 +551,7 @@ TRIAL = {
              "say": "'Janet Erskine was sent out from Carrickfergus privately, my "
                     "lord, and the girl knew her at once.'",
              "press": ("Who knew she was sent?",
-                       "'Only myself, my lord. And Mr Adair, and my officer, and "
+                       "'Only myself, my lord. And Mr Craig, and my officer, and "
                        "the officer's wife. And the carter.'", "carter", None)},
             {"id": "carter", "hidden": True,
              "say": "'The carter drove her out by Braehead and stopped at the gate "
