@@ -21,3 +21,5 @@ src/bank*.asm
 src/bank*.bin
 src/bank*.sym
 src/bootsyms.inc
+src/trial.inc
+src/trialsym.inc
