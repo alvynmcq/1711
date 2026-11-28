@@ -1,9 +1,9 @@
 ; ============================================================
-;  1711  (working title) - v0.7: title, prologue, Night One
-;  statements and parade, credits
+;  1711  (working title) - v0.9: title, prologue, the trial (a
+;  witness's cross-examination), credits
 ;  ZX Spectrum 128K. pasmo syntax. Loaded at 6000h by the BASIC
 ;  loader (CLEAR 24575). Everything here stays below C000h; the
-;  scripts, pictures and nights are in banks paged in at C000h
+;  scripts, pictures and the trial are in banks paged in at C000h
 ;  (src/boot.asm loads them, build.py writes src/banks.inc).
 ;
 ;  The game is driven by scripts (src/script.inc, compiled by
@@ -153,7 +153,7 @@ run_bad:
 
 optab:  dw op_end,op_cls,op_pic,op_text,op_type,op_wait
         dw op_pause,op_border,op_clrrows,op_jump,op_choice
-        dw op_night,op_load,op_portrait
+        dw op_trial,op_load,op_portrait
 
 op_end: ret
 
@@ -282,10 +282,10 @@ opc_go: ld e,(hl)
         ex de,hl
         jp run
 
-op_night:                   ; db chunk: the night's screens (night.asm),
-        ld a,(hl)           ; until X; then that chunk, as the night's
-        push af             ; text has been unpacked over this one
-        call night
+op_trial:                   ; db chunk: the cross-examination (trial.asm),
+        ld a,(hl)           ; then that chunk, as the trial's bank has
+        push af             ; been paged in over the scripts'
+        call trial
         pop af
         call loadchunk
         jp run
@@ -311,14 +311,12 @@ op_portrait:                ; db portrait number, row, col
 ;  Screen
 ; ============================================================
 ; ---- portrait A (porttab, ZX0) at character row B, column C ----
-; PORTW x PORTH cells: unpacked to PSCR (in the portrait's own bank,
-; paged in for the drawing; the bank that was in goes back after),
-; its colour cells blacked out first, then the pixels, then the colours,
-; so it appears at once. Colours go through attrbase, so a hidden
-; (veiled) night screen keeps it hidden too.
-PORTW   EQU 10
-PORTH   EQU 12
-
+; Unpacked to PSCR (in the portrait's own bank, paged in for the
+; drawing; the bank that was in goes back after): its width and height
+; in cells (v0.9: each portrait has its own size), the pixels, the
+; colours. Its colour cells are blacked out first, then the pixels, then
+; the colours, so it appears at once. Colours go through attrbase, so a
+; hidden (veiled) screen keeps it hidden too.
 portrait:
         ld (p_rc),bc
         ld hl,porttab
@@ -330,6 +328,13 @@ portrait:
         call page
         ld de,PSCR
         call dzx0_standard
+        ld a,(PSCR)
+        ld (p_w),a
+        neg
+        add a,32
+        ld (p_skip),a       ; 32 - width: to the next row of colours
+        ld a,(PSCR+1)
+        ld (p_h),a
         ld bc,(p_rc)
         ld l,b              ; HL = its top left colour cell
         ld h,0
@@ -343,13 +348,17 @@ portrait:
         ld bc,(attrbase)
         add hl,bc
         push hl
-        ld b,PORTH          ; black out its colours
+        ld a,(p_h)          ; black out its colours
+        ld b,a
 pt1:    push bc
-        ld b,PORTW
+        ld a,(p_w)
+        ld b,a
 pt2:    ld (hl),0
         inc hl
         djnz pt2
-        ld de,32-PORTW
+        ld a,(p_skip)
+        ld e,a
+        ld d,0
         add hl,de
         pop bc
         djnz pt1
@@ -358,8 +367,12 @@ pt2:    ld (hl),0
         add a,a
         add a,a
         ld (p_y),a
-        ld hl,PSCR
-        ld b,PORTH*8
+        ld hl,PSCR+2
+        ld a,(p_h)
+        add a,a
+        add a,a
+        add a,a
+        ld b,a
 pt3:    push bc
         ld a,(p_y)          ; DE = screen address of pixel row A, column
         ld e,a
@@ -381,7 +394,9 @@ pt3:    push bc
         ld a,(p_rc)
         add a,e
         ld e,a
-        ld bc,PORTW
+        ld a,(p_w)
+        ld c,a
+        ld b,0
         ldir
         ld a,(p_y)
         inc a
@@ -389,12 +404,16 @@ pt3:    push bc
         pop bc
         djnz pt3
         pop de              ; HL = PSCR + its pixels: the colours
-        ld b,PORTH
+        ld a,(p_h)
+        ld b,a
 pt4:    push bc
-        ld bc,PORTW
+        ld a,(p_w)
+        ld c,a
+        ld b,0
         ldir
         ex de,hl
-        ld bc,32-PORTW
+        ld a,(p_skip)
+        ld c,a
         add hl,bc
         ex de,hl
         pop bc
@@ -405,6 +424,9 @@ pt4:    push bc
 p_rc:   dw 0                ; col, row
 p_y:    db 0
 p_was:  db 0                ; the bank that was in
+p_w:    db 0                ; its width and height in cells
+p_h:    db 0
+p_skip: db 0
 
 clsa:                       ; clear the screen; every colour cell = A
         push af
@@ -577,7 +599,7 @@ ccl1:   ld (hl),0
         ld c,a
         ld b,0
         add hl,bc
-        ld bc,(attrbase)    ; the screen, or night.asm's hidden copy
+        ld bc,(attrbase)    ; the screen, or trial.asm's hidden copy (veil)
         add hl,bc
         ld a,(c_attr)
         ld (hl),a
@@ -717,9 +739,9 @@ attrbase: dw ATTR
 curbank: db 0
 frames: dw 0
 
-        INCLUDE "night.asm"
+        INCLUDE "trial.asm"
         INCLUDE "dzx0_standard.asm"
         INCLUDE "font.inc"
         INCLUDE "banks.inc"         ; chunks, pictures, portraits: bank + address (build.py)
-        INCLUDE "nightsym.inc"      ; the night's labels, at NBUF in its bank (build.py)
+        INCLUDE "trialsym.inc"      ; the trial's labels, at TBUF in its bank (build.py)
 END_OF_CODE:

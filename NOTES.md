@@ -1,18 +1,146 @@
-# 1711 (working title): project notes, v0.8
+# 1711 (working title): project notes, v0.9
 
-A ZX Spectrum 128K game. You are the clerk to Mayor Ellis of Carrickfergus,
-taking sworn statements at Braehead House, Islandmagee, in March 1711, as a
-young woman names her neighbours as witches. You read, compare and record.
-The horror is the process: what gets written down, and what doesn't.
+A ZX Spectrum 128K game. You are Justice Lyle at the Carrickfergus
+Assizes, 31 March 1711: the one judge who argued for acquittal, and the
+only voice the accused have. Witnesses testify a line at a time; their
+stories have drifted since March; you press them and set the court record
+against what they say, before the clock and the bench run out. The horror
+is the process: what is heard, and what the court lets pass.
 
 Based on the trial documents edited by Andrew Sneddon and Shannon Devlin
 (w1711.org, CC BY 4.0). Real places and dates; every person renamed. The
 w1711 graphic novel (CC BY-NC-ND) was read for research only: nothing from
 it is used.
 
-**Stage 3 (decided 27 Nov) replaces this: the game is now the trial.** You
-play Justice Lyle, in court, for one day. See "Stage 3: the courtroom",
-next. Everything from "What v0.8 has" down describes v0.8 and earlier.
+**Stage 3 (decided 27 Nov) replaced the clerk: the game is now the trial.**
+See "What v0.9 has" and "Stage 3: the courtroom", next. Everything from
+"What v0.8 has" down describes v0.8 and earlier (the desk, the nights),
+kept as history: that code is gone from the build (in git before 8d30225).
+
+## What v0.9 has (stage 3, the slice)
+
+The title, the prologue (its end rewritten for Lyle: the women taken to
+the gaol, the Assizes, three judges, no counsel, "You are Justice Lyle";
+then the Assizes card in place of the Night One card, without Isobel, so
+her one appearance will be in court), Margaret Lowry's cross-examination
+from six to seven, Lyle's notes, the slice's end, "What happened in 1711",
+the credits. The title now reads "...events, and the trial that
+followed." Title and credits say "v0.9 slice".
+
+- **The screen** as designed (see the table under Stage 3), with: the
+  hour marks are eight little candles in cells 26-31 of row 0 (x = 210 +
+  5i), each hour's burnt down to its dish; row 16's rule says "3 of 7"
+  (lines shown so far); row 22's keys show "X end" only on the last line
+  shown (the row has no room for it otherwise; X works on any line).
+- **O / P** a line: heard the first time (typed, 3 minutes), shown at once
+  after. **SPACE** presses (6 minutes, once a line; again: "She has
+  answered that."): Lyle's question in bright white, her answer under it,
+  SPACE; a press may draw out a hidden line (shown next and heard), or a
+  note. A line with no press gets "Go on, Mrs Lowry. What more?" / "It is
+  as I said, my lord." for the same 6 minutes: you can't tell which lines
+  hold more. **ENTER**: the record over the portrait (row 3 heading, rows
+  4-13 the facts, row 15 who swore the chosen one), Q / A or 1-0, ENTER
+  presents, X back. The chosen fact stays chosen between visits.
+- **HOLD, SIR!**: the border red and white 6 frames, the AY bell, rows
+  17-18 bright red, the letters twice as tall (bigstamp's `bigch`, 9
+  pixels apart, no box), Lyle's question on 19-20; SPACE: she falters (12
+  cells swapped straight to the screen) and answers; SPACE: Ormsby;
+  SPACE: "Let it be written:" and the note; SPACE: her face back, the line
+  again (8 minutes). The same fact again: "You have had that from her."
+- **A fact that doesn't bear**: Ormsby's own words for that pair if the
+  data has them (five knots presented against "nine knots" sworn by
+  Margaret Wylie: "They agree. You have helped the Crown."), else the next
+  rebuke; a low AY note; the bench -2, 10 minutes. At 0: "Brother Lyle,
+  you have said enough...", the manner line "You may not speak again
+  today.", the keys "O P lines / X let her go"; SPACE and ENTER get
+  "Ormsby: 'Brother.'"
+- **The clock**: minutes since six in `tr_t` (a word), the time in words
+  on row 1 to the five minutes below; an AY bell and a candle out each
+  hour; at seven (TR_END, 60) Ormsby stands her down. X, Y lets her stand
+  down sooner.
+- **Lyle's notes**: what was written, in order; "Nothing was written." if
+  nothing. Never how much there was to find (as decided 26 Nov).
+
+### The numbers (trialcheck.py)
+
+Costs: a line heard 3, a press 6, HOLD 8, a wrong fact 10 and the bench
+-2; the slice is 60 minutes. The best path (both contradictions, the
+spectral press, no wasted presses) ends at 6:49 with three notes; pressing
+every line runs out at seven with the apron's finder never raised; seven
+lines heard and pressed would take 63 minutes alone. Silencing can't
+happen inside an hour on these costs (it takes six wrong facts, 60
+minutes), so bench.keys pokes it; across a whole day it can.
+
+### The trial format (data/trial.py, scripts/trial.py)
+
+- **record**: (id, fact, who, when); a fact at most 36 characters (the
+  record row: mark, number, fact), ten at most (keys 1-0).
+- **witnesses**: name, portrait, lines. A line: id, `say` (at most 4
+  rows), `hidden` (drawn out by a press), `press` (question, answer, the
+  line it draws out, a note, spectral), `holds` {fact: (question at most
+  2 rows, answer, Ormsby, the note at most 3 rows)}, `wrong` {fact:
+  Ormsby's own words}. The checker refuses "witch" in testimony.
+- **cost**, **bench** (start, wrong, manner by band, rebukes, the
+  silencing and the remarks, each one row), **press_none**, **paths**.
+- scripts/trial.py wraps every text to blocks (db rows, strings), works
+  out the time in words for every five minutes, six to two, and writes
+  src/trial.inc (tables in its docstring); build.py puts it in bank 3 and
+  its labels in src/trialsym.inc.
+- scripts/trialcheck.py prints the record, each line's press, holds and
+  own rebukes, and plays each path by the engine's rules (time, bench,
+  notes).
+
+### Portraits (v0.9)
+
+art/portraits.py: each portrait has its own size (Isobel and Kate 10 x
+12, Lowry 16 x 14); the block starts with its width and height, and
+`portrait` reads them. A witness returns two renders, steady and
+faltering; the cells that differ go to art/NAME_falter.bin (db cells;
+row, col, 8 bytes faltering, 8 as it was), pixels only: the steady
+colours stay, so the swap can't clash (one render had a cell BRIGHT the
+other didn't, so the colours are always the steady face's). script.py
+puts the delta after the packed portrait as `falter_NAME`.
+Lowry: a plain linen cap lit from the candle low on the left and lost in
+the dark on the right (no ring), a brown woollen bodice, a white
+kerchief; she looks up at the bench, mouth set. Faltering: brows lift,
+eyes drop and go aside, mouth opens. 504 bytes packed, the falter 217.
+Kate's portrait is still built (bank 3) but not shown.
+
+### Memory (v0.9)
+
+Code 6000h-757Dh, 5502 bytes (19074 free below C000h): night.asm (2675
+lines) went, trial.asm came. PSCR moved to F5E0h (2018 bytes, a 16 x 14
+portrait, under the IM2 table at FDFDh) in every bank with a portrait.
+Bank 1: scripts and pictures and Isobel, ends E3B5h. Bank 3: the trial,
+5397 bytes, with Kate and Lowry, ends D8FEh (3173 bytes packed on the
+tape). The whole tape is 21419 bytes.
+
+### Tests (v0.9)
+
+The desk's tests went with it (desk, nav, candle, patience, agnew, bare).
+Four tests, every screen looked at before its reference was written:
+- prologue: the title (new subtitle) to the Assizes card and the trial's
+  first frame (15 SPACEs).
+- credits: as before, v0.9.
+- lowry: the slice played well (see the comment in lowry.keys): press
+  and the drawn-out line, both HOLD, SIR!s (the question, the falter, the
+  answer, Ormsby, the note, her face back), a fact with its own rebuke,
+  the spectral press, X Y, Lyle's notes, the end, 1711, the credits.
+- bench: two wrong facts (poke tr_pat=2 between): the rebukes, silenced,
+  the keys and remarks after; poke tr_t=58: the bell at seven, a candle
+  out, she stands down, "Nothing was written."
+
+### Next
+
+1. Play it. Tune the costs and the typing speed (2 frames a letter: a
+   4-row line takes about 6 seconds; SPACE shows the rest at once).
+2. Margaret Wylie, Dickey and Wilson, Gilmour, Gordon, then Mayor Ellis
+   (presenting against him costs the bench -3) and Isobel brought in
+   once; the day's clock across them all instead of the slice's hour.
+3. The verdict: contradictions per accused and the spectral admissions;
+   Ormsby's summing-up; the jury; partial outcomes; the pillory picture.
+4. The establishing pictures: the court from the gallery, the accused in
+   the dock, Isobel brought in, the pillory.
 
 ## Stage 3: the courtroom (decided 27 Nov)
 
@@ -467,7 +595,7 @@ get a "needs a 128K" message.
 Python 3 with Pillow, `pasmo`, a C compiler (`cc`, builds tools/zx0 once).
 
     python3 build.py            # -> 1711.tap
-    python3 scripts/nightcheck.py 1
+    python3 scripts/trialcheck.py    (v0.9; nightcheck.py went with the desk)
 
     python3 tools/keytest.py    # headless key-script tests (SkoolKit)
 

@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
-"""Portraits: 10 x 12 characters (80 x 96 pixels), black paper, own
-attributes, in the prologue's style (art/render.py: greyscale + ink hints,
-Bayer dither).
+"""Portraits, black paper, own attributes, in the prologue's style
+(art/render.py: greyscale + ink hints, Bayer dither). Each has its own
+size in characters (v0.9): Isobel and Kate are 10 x 12 (80 x 96 pixels),
+the trial's witnesses 16 x 14 (128 x 112).
 
 Each portrait is drawn at the screen's top left, rendered with render.Pic,
-then cut out as a block: 96 pixel rows of 10 bytes (top to bottom), then
-12 rows of 10 attributes. 1080 bytes raw, packed with ZX0 by the build.
+then cut out as a block: db width, height (characters), then 8 x height
+pixel rows of width bytes (top to bottom), then height rows of width
+attributes. Packed with ZX0 by the build (src/port_NAME.inc).
+
+A witness can also falter (v0.9): drawn a second time with the eyes and
+mouth changed, and the cells that differ written to art/NAME_falter.bin:
+db cells, then each cell as db row, col (in the portrait), 8 pixel bytes
+as it falters, 8 as it was. The attributes never change, so swapping the
+cells in at once can't clash. The engine swaps them straight to the screen.
 
   isobel : Isobel Halliday, 18, by candlelight on the night the clerk
            first sees her. Well bred, a stranger to the island; drawn as a
@@ -16,14 +24,23 @@ then cut out as a block: 96 pixel rows of 10 bytes (top to bottom), then
            linen kerchief, a grey woollen shawl; younger and rounder in the
            face; she looks down and away, not at the clerk. Ordinary.
 
-Writes art/<name>.bin (the raw block) and art/<name>.png (preview, x4).
+  lowry  : Margaret Lowry, servant at Braehead House, in the witness box
+           at six in the morning (v0.9). A plain linen cap, a brown
+           woollen bodice, a white kerchief; the candle on the box's ledge,
+           low on the left. She looks up at the bench, holding to the story
+           she has told so often; when she falters her eyes drop and go
+           aside, her brows lift and her mouth opens a little. Ordinary,
+           frightened of the court, not of anyone in the dock.
+
+Writes art/<name>.bin (the raw block), art/<name>.png (preview, x4) and,
+for a witness, art/<name>_falter.bin and art/<name>_falter.png.
 """
 import os
 from PIL import Image, ImageDraw
 from render import Pic, scr_preview, K, RED, YELLOW, WHITE, BR
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PW, PHC = 10, 12               # width and height in characters
+PW, PHC = 10, 12               # the night portraits' size, in characters
 PWX, PHX = PW * 8, PHC * 8     # in pixels
 
 
@@ -34,9 +51,10 @@ class Canvas:
     """A 4x canvas in portrait units (80 x 96). Shapes are filled with a
     value or with fn(x, y) -> 0..1 (x, y in portrait units)."""
 
-    def __init__(self):
-        self.lum = Image.new("L", (PWX * S, PHX * S), 0)
-        self.hint = Image.new("L", (PWX * S, PHX * S), 0)
+    def __init__(self, pw=PW, ph=PHC):
+        self.pw, self.ph = pw, ph
+        self.lum = Image.new("L", (pw * 8 * S, ph * 8 * S), 0)
+        self.hint = Image.new("L", (pw * 8 * S, ph * 8 * S), 0)
 
     def fill(self, draw_mask, v, ink=None):
         m = Image.new("L", self.lum.size, 0)
@@ -65,11 +83,12 @@ class Canvas:
     def to_pic(self, seed, levels=5):
         """Scale down and quantise to a few clean dither patterns (0, 1/4,
         1/2, 3/4, 1 with five levels): flat, readable tones, no grain."""
-        p = Pic((0, PHC), ink=YELLOW, seed=seed)
-        small = self.lum.resize((PWX, PHX), Image.BOX)
+        p = Pic((0, self.ph), ink=YELLOW, seed=seed)
+        wx, hx = self.pw * 8, self.ph * 8
+        small = self.lum.resize((wx, hx), Image.BOX)
         n = levels - 1
         p.lum.paste(small.point(lambda v: min(255, int(round(v / 255 * n) * 255 / n))), (0, 0))
-        p.hint.paste(self.hint.resize((PWX, PHX), Image.NEAREST), (0, 0))
+        p.hint.paste(self.hint.resize((wx, hx), Image.NEAREST), (0, 0))
         return p
 
 
@@ -218,29 +237,158 @@ def kate():
     return p
 
 
-def block(p):
-    """Cut the portrait out of a rendered screen: pixels row by row, then
-    attributes row by row."""
+def lowry():
+    """Margaret Lowry in the witness box (16 x 14). Returns (steady, faltering)."""
+    def paint():
+        c = Canvas(16, 14)
+        L = lambda x, lo, hi, g=0.9: side(x, 20, 112, lo, hi, g)   # the candle, low left
+        # the bodice, brown wool, plain: dark, catching the light on the left
+        c.poly([(0, 112), (4, 94), (22, 80), (44, 74), (84, 74), (106, 80), (124, 94), (127, 112)],
+               lambda x, y: L(x, 0.03, 0.40, 1.4), YELLOW)
+        # the kerchief, white linen crossed over the breast, a servant's,
+        # tucked in plainly
+        c.poly([(38, 78), (52, 74), (64, 88), (76, 74), (90, 78), (80, 96), (70, 112), (58, 112),
+                (48, 96)], lambda x, y: L(x, 0.15, 0.95, 0.8), WHITE)
+        c.line([(64, 88), (63, 112)], 0.1, 0.8)
+        c.line([(50, 78), (56, 92), (60, 106)], 0.45, 0.6)
+        # neck, in shadow under the jaw
+        c.poly([(52, 64), (76, 64), (78, 78), (50, 78)],
+               lambda x, y: L(x, 0.08, 0.6) * (0.4 if y < 76 else 0.75), YELLOW)
+        # hair, dark, under the cap
+        c.ellipse((36, 16, 92, 72), lambda x, y: L(x, 0.02, 0.25, 1.5), YELLOW)
+        # the cap: plain linen over the crown, lit on the left, lost in the
+        # dark on the right so it never rings her face
+        c.poly([(36, 34), (38, 20), (48, 10), (62, 6), (78, 8), (90, 18), (94, 32), (90, 44),
+                (86, 34), (80, 26), (64, 22), (50, 24), (42, 30)],
+               lambda x, y: L(x, 0.0, 1.0, 1.4), WHITE)
+        c.line([(37, 33), (46, 25), (60, 22), (76, 23), (86, 31)], 0.4, 0.8)   # its edge
+        c.line([(52, 9), (55, 20)], 0.55, 0.6)                                  # a fold
+        # the face, nearly full on, turned a little to the light
+        face = [(40, 36), (44, 28), (54, 24), (70, 24), (82, 29), (86, 40), (85, 52), (80, 62),
+                (72, 70), (62, 72), (52, 68), (44, 60), (40, 48)]
+
+        def face_lum(x, y):
+            v = L(x, 0.42, 1.0, 0.6)
+            if x > 80:
+                v *= 0.75
+            if y > 66:
+                v *= 0.8
+            return v
+        c.poly(face, face_lum, YELLOW)
+        c.poly([(38, 24), (62, 24), (60, 72), (38, 60)], None, YELLOW + BR)   # lit half bright
+        # hair at the brow, parted under the cap's edge
+        c.poly([(40, 36), (44, 28), (54, 25), (62, 27), (70, 25), (82, 29), (86, 38),
+                (80, 31), (70, 30), (62, 31), (54, 30), (46, 33)], 0.05)
+        c.ellipse((45, 38, 61, 48), 0.85)        # the eyes, lit enough to read
+        c.ellipse((65, 38, 80, 48), 0.6)
+        c.poly([(61, 44), (64, 38), (65, 56), (61, 58)], 1.0)   # light down the nose
+        c.ellipse((44, 50, 56, 60), 1.0)         # the near cheek
+        return c.to_pic(1711_3)
+
+    def features(p, falter):
+        px = p.lum.load()
+
+        def put(pts, v):
+            for (x, y) in pts:
+                px[x, y] = int(v * 255)
+        if not falter:
+            # steady: up at the bench, brows level, the mouth set: she has
+            # told this so often she can say it without thinking
+            put([(x, 38) for x in range(48, 58)], 0.25)                       # brows
+            put([(x, 38) for x in range(68, 77)], 0.25)
+            put([(x, y) for x in range(48, 58) for y in (42, 43)], 1.0)       # near eye
+            put([(x, 41) for x in range(48, 58)] + [(47, 42), (58, 42)], 0.0)
+            put([(x, y) for x in (52, 53) for y in (41, 42, 43)], 0.0)       # iris, up
+            put([(52, 42)], 1.0)
+            put([(x, 44) for x in range(49, 57)], 0.5)
+            put([(x, y) for x in range(68, 77) for y in (42, 43)], 0.75)      # far eye
+            put([(x, 41) for x in range(68, 77)] + [(67, 42), (77, 42)], 0.0)
+            put([(x, y) for x in (71, 72) for y in (41, 42, 43)], 0.0)
+            put([(x, 63) for x in range(56, 70)], 0.0)                       # mouth, set
+            put([(x, 64) for x in range(57, 69)], 1.0)
+        else:
+            # faltering: the brows lift, the eyes drop and go aside, the
+            # mouth opens a little: she has lost her place in the story
+            put([(x, 36 - (1 if 51 <= x <= 55 else 0)) for x in range(48, 58)], 0.25)
+            put([(x, 36 - (1 if 70 <= x <= 74 else 0)) for x in range(68, 77)], 0.25)
+            put([(x, y) for x in range(48, 58) for y in (42, 43)], 1.0)
+            put([(x, 41) for x in range(48, 58)] + [(47, 42), (58, 42)], 0.0)
+            put([(x, 42) for x in range(48, 58)], 0.5)                       # lid lowered
+            put([(x, y) for x in (49, 50) for y in (43, 44)], 0.0)           # down, aside
+            put([(x, 45) for x in range(49, 57)], 0.5)
+            put([(x, y) for x in range(68, 77) for y in (42, 43)], 0.75)
+            put([(x, 41) for x in range(68, 77)] + [(67, 42), (77, 42)], 0.0)
+            put([(x, 42) for x in range(68, 77)], 0.5)
+            put([(x, y) for x in (68, 69) for y in (43, 44)], 0.0)
+            put([(x, 62) for x in range(58, 68)], 0.0)                       # mouth, open
+            put([(x, 63) for x in range(58, 68)], 0.0)
+            put([(x, 64) for x in range(59, 67)], 0.0)
+            put([(57, 63), (68, 63)], 0.5)
+            put([(x, 65) for x in range(59, 67)], 1.0)
+        put([(65, y) for y in range(48, 57)], 0.5)                           # nose shadow
+        put([(61, 58), (65, 58)], 0.0)                                       # nostrils
+        return p
+    return features(paint(), False), features(paint(), True)
+
+
+def block(p, pw, ph):
+    """Cut the portrait out of a rendered screen: its size, pixels row by
+    row, then attributes row by row."""
     scr = p.to_scr()
-    out = bytearray()
-    for y in range(PHX):
+    out = bytearray([pw, ph])
+    for y in range(ph * 8):
         a = ((y & 0xC0) << 5) | ((y & 7) << 8) | ((y & 0x38) << 2)
-        out += scr[a:a + PW]
-    for r in range(PHC):
-        out += scr[6144 + r * 32:6144 + r * 32 + PW]
+        out += scr[a:a + pw]
+    for r in range(ph):
+        out += scr[6144 + r * 32:6144 + r * 32 + pw]
     return bytes(out), scr
 
 
-PORTRAITS = [("isobel", isobel), ("kate", kate)]
+def falter_delta(scr0, scr1, pw, ph):
+    """The cells that differ between the two renders, pixels only: the
+    steady face's attributes stay (a render may make a changed cell
+    BRIGHT or not; the swap must never touch colour, or it would clash)."""
+    cells = []
+    for r in range(ph):
+        for c in range(pw):
+            old, new = bytearray(), bytearray()
+            for y in range(r * 8, r * 8 + 8):
+                a = ((y & 0xC0) << 5) | ((y & 7) << 8) | ((y & 0x38) << 2) | c
+                old.append(scr0[a])
+                new.append(scr1[a])
+            if old != new:
+                cells.append((r, c, bytes(new), bytes(old)))
+    out = bytearray([len(cells)])
+    for r, c, new, old in cells:
+        out += bytes([r, c]) + new + old
+    return bytes(out), len(cells)
+
+
+def preview(scr, pw, ph, path):
+    tmp = os.path.join(HERE, "_tmp.png")
+    scr_preview(scr, tmp, scale=1)
+    Image.open(tmp).crop((0, 0, pw * 8, ph * 8)).resize((pw * 32, ph * 32), Image.NEAREST).save(path)
+    os.remove(tmp)
+
+
+PORTRAITS = [("isobel", isobel, 10, 12), ("kate", kate, 10, 12), ("lowry", lowry, 16, 14)]
 
 if __name__ == "__main__":
     import zx0
-    for name, fn in PORTRAITS:
-        raw, scr = block(fn())
+    for name, fn, pw, ph in PORTRAITS:
+        pics = fn()
+        if not isinstance(pics, tuple):
+            pics = (pics,)
+        raw, scr = block(pics[0], pw, ph)
         open(os.path.join(HERE, name + ".bin"), "wb").write(raw)
-        tmp = os.path.join(HERE, "_tmp.png")
-        scr_preview(scr, tmp, scale=1)
-        Image.open(tmp).crop((0, 0, PWX, PHX)).resize((PWX * 4, PHX * 4), Image.NEAREST) \
-            .save(os.path.join(HERE, name + ".png"))
-        os.remove(tmp)
-        print("%s: %d bytes raw, %d packed" % (name, len(raw), len(zx0.compress(raw))))
+        preview(scr, pw, ph, os.path.join(HERE, name + ".png"))
+        extra = ""
+        if len(pics) > 1:
+            _, scr1 = block(pics[1], pw, ph)
+            scr1 = scr1[:6144] + scr[6144:]          # as the game shows it: the steady colours
+            delta, n = falter_delta(scr, scr1, pw, ph)
+            open(os.path.join(HERE, name + "_falter.bin"), "wb").write(delta)
+            preview(scr1, pw, ph, os.path.join(HERE, name + "_falter.png"))
+            extra = "; falters in %d cells (%d bytes)" % (n, len(delta))
+        print("%s: %d x %d, %d bytes raw, %d packed%s" % (name, pw, ph, len(raw),
+                                                          len(zx0.compress(raw)), extra))

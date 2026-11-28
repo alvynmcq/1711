@@ -5,8 +5,8 @@ The prologue is adapted from THE ISLANDMAGEE WITCHES (1822), in Andrew
 Sneddon and Shannon Devlin (eds), 'Documents from the Trial of the
 "Islandmagee Witches" at Carrickfergus Assizes, County Antrim, Ireland,
 1711' (w1711.org, CC BY 4.0). The events, dates and much of the dialogue
-follow that account; every person's name has been changed. The clerk only
-arrives on 3 March, so the prologue is told as hearsay: what the household
+follow that account; every person's name has been changed. Justice Lyle
+saw none of it, so the prologue is told as hearsay: what the household
 says or swears, never as fact:
 
   Ann Haltridge -> Agnes Wylie     Knowehead House -> Braehead House
@@ -15,7 +15,7 @@ says or swears, never as fact:
 """
 from script import BLK, YEL, BYEL, WHT, BWHT, RED, BRED, CYN
 
-VERSION = "v0.8 slice"
+VERSION = "v0.9 slice"
 
 TITLE = [
     ("cls", WHT),
@@ -23,7 +23,7 @@ TITLE = [
     ("text", 4, 12, BYEL, "1  7  1  1"),
     ("text", 7, 6, WHT, "Islandmagee, County Antrim"),
     ("text", 9, 3, YEL, "Being a true account of strange"),
-    ("text", 10, 3, YEL, "events, as taken down by the clerk."),
+    ("text", 10, 3, YEL, "events, and the trial that followed."),
     ("text", 16, 7, BWHT, "SPACE  Begin"),
     ("text", 17, 7, WHT, "C      Credits"),
     ("text", 22, 1, WHT, VERSION),
@@ -99,25 +99,45 @@ PROLOGUE = [
                    "she had never seen. They were sent for, one by one."),
     ("story", YEL, "On the 3rd of March, Mayor Ellis of Carrickfergus rides out "
                    "to take sworn statements."),
-    ("story", BWHT, "He brings his clerk. You."),
+    ("story", YEL, "The women she named are taken to the gaol at "
+                   "Carrickfergus."),
     ("wait",),
-    ("story", YEL, "You saw none of what came before. You have only what the "
-                   "household says. Now they will swear to it, and you will "
-                   "write it down."),
+    ("story", YEL, "On the 31st of March they are tried at the Assizes. Three "
+                   "judges sit. The accused have no counsel: in a felony, the "
+                   "judges question the witnesses."),
+    ("story", BWHT, "You are Justice Lyle, one of the three. You saw none of "
+                    "what came before. You have only the record of what was "
+                    "sworn."),
     ("wait",),
-    ("portrait", "isobel", 0, 11),          # the clerk's first sight of her
-    ("text", 13, 9, BYEL, "N I G H T    O N E"),
-    ("text", 14, 10, WHT, "3rd March 1711"),
-    ("text", 16, 2, YEL, "Mayor Ellis sits in the parlour. One by"),
-    ("text", 17, 2, YEL, "one they come in and swear, and you"),
-    ("text", 18, 2, YEL, "write down what they say."),
-    ("text", 20, 2, BWHT, "You have one candle for the night."),
-    ("wait",),
-    ("night",),
     ("cls", WHT),
-    ("story", YEL, "Night One ends. Mayor Ellis takes the book with him to "
-                   "Carrickfergus. This build goes no further: the next nights "
-                   "are still to come."),
+    ("text", 4, 7, BYEL, "T H E    A S S I Z E S"),
+    ("text", 6, 9, WHT, "31st March 1711"),
+    ("text", 7, 10, WHT, "Carrickfergus"),
+    ("text", 10, 2, YEL, "The court sits at six in the morning."),
+    ("text", 11, 2, YEL, "At two the jury retires, whatever has"),
+    ("text", 12, 2, YEL, "or hasn't been said."),
+    ("text", 14, 2, YEL, "The witnesses tell it a line at a time."),
+    ("text", 15, 2, YEL, "Press a line to hear more. Where it"),
+    ("text", 16, 2, YEL, "goes against what was sworn in March,"),
+    ("text", 17, 2, YEL, "present the record."),
+    ("text", 19, 2, BWHT, "This slice: Margaret Lowry, the first"),
+    ("text", 20, 2, BWHT, "witness. The court gives her an hour."),
+    ("wait",),
+    ("trial",),
+    ("cls", WHT),
+    ("story", YEL, "This build goes no further. In the game to come the other "
+                   "witnesses follow, then Mayor Ellis, then the jury."),
+    ("wait",),
+    ("story", BWHT, "What happened in 1711"),
+    ("story", YEL, "Whatever a jury does in this game, the history does not "
+                   "change. On the 31st of March 1711 the accused were "
+                   "convicted at Carrickfergus, and sentenced to a year's "
+                   "imprisonment and to stand four times in the pillory."),
+    ("story", YEL, "One of the three judges argued for their acquittal. He was "
+                   "outvoted."),
+    ("wait",),
+    ("story", WHT, "The people in this game stand in for real ones. Their "
+                   "records are at w1711.org."),
     ("wait",),
     ("jump", "credits"),
 ]

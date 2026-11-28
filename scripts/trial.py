@@ -115,9 +115,16 @@ def check(T):
                     j = lids.index(add)
                     if j != lids.index(ln["id"]) + 1 or not w["lines"][j].get("hidden"):
                         raise TrialError("a drawn-out line must be hidden and come next: %s" % add)
+                if len(wrap(q)) + len(wrap(a)) > MAXROWS:
+                    raise TrialError("press on %s: question and answer more than %d rows"
+                                     % (ln["id"], MAXROWS))
                 if note:
+                    if len(wrap(note)) > MAXROWS - 1:
+                        raise TrialError("note on %s: more than %d rows" % (ln["id"], MAXROWS - 1))
                     notes.append(note)
             for fid, (q, a, o, note) in ln.get("holds", {}).items():
+                if len(wrap(note)) > MAXROWS - 1:
+                    raise TrialError("hold note on %s: more than %d rows" % (ln["id"], MAXROWS - 1))
                 if fid not in ids:
                     raise TrialError("hold on %s: no fact %s" % (ln["id"], fid))
                 if len(wrap(q)) > 2:
@@ -136,9 +143,8 @@ def check(T):
                     raise TrialError("'witch' in %s: the accused are never called that" % ln["id"])
     if len(notes) > 16:
         raise TrialError("at most 16 notes")
-    for s in T["press_none"]:
-        if len(wrap(s)) > MAXROWS:
-            raise TrialError("press_none too long")
+    if sum(len(wrap(s)) for s in T["press_none"]) > MAXROWS:
+        raise TrialError("press_none too long")
     return notes
 
 

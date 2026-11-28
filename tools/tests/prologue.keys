@@ -1,6 +1,7 @@
 # Title -> the whole prologue, told as hearsay (SPACE skips the typing,
 # SPACE again turns the page; the SPACE that begins does not skip page 1,
-# as the prologue chunk is still unpacking) -> the Night One card -> the hub.
-frames 1141
-every 60 40 27 SPACE
+# as the prologue chunk is still unpacking) -> the court card -> the trial
+# (v0.9: Lyle, the Assizes card; the 15th SPACE begins the trial).
+frames 700
+every 60 40 15 SPACE
 shot 50 135 175 215 255 295 335 375 415 455 495 535 575 615 655

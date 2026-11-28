@@ -1,0 +1,48 @@
+# The slice played well (v0.9): Margaret Lowry. 15 SPACEs reach the
+# trial (the court card's at 620). Line 1 typed; P to the apron; SPACE
+# presses it ("Found by whom?") and draws out a new line, 3 of 7; ENTER
+# opens the record, 2 picks "Lowry found the apron herself", ENTER
+# presents it: HOLD, SIR!, the question, she falters and answers, Ormsby,
+# "Let it be written", her face back. P to the knots, the record, 1 (five
+# knots), HOLD, SIR! again. P to "loosed", fact 3 (it agrees: Ormsby's
+# own rebuke, the bench -2). P, P to Janet Boyd (the last line: X shown),
+# SPACE presses it: none saw her but Miss Halliday, written. 59 minutes.
+# X, Y: she stands down; Lyle's notes (three); the slice's end; 1711.
+frames 7400
+every 60 40 15 SPACE
+950 P
+1250 SPACE
+1500 SPACE
+1750 ENTER
+1850 2
+1950 ENTER
+2250 SPACE
+2550 SPACE
+2800 SPACE
+3050 SPACE
+3150 P
+3400 ENTER
+3450 1
+3500 ENTER
+3750 SPACE
+4000 SPACE
+4250 SPACE
+4450 SPACE
+4550 P
+4750 ENTER
+4800 3
+4850 ENTER
+5050 SPACE
+5150 P
+5350 P
+5700 SPACE
+6050 SPACE
+6250 SPACE
+6300 X
+6400 Y
+6550 SPACE
+6650 SPACE
+6800 SPACE
+7000 SPACE
+7200 SPACE
+shot 900 1200 1450 1700 1800 1900 1956 2200 2500 2750 3000 3100 3330 3450 3700 3970 4200 4400 4500 5000 5100 5650 6000 6200 6340 6500 6600 6750 6950 7150 7350
