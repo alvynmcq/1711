@@ -10,6 +10,190 @@ Based on the trial documents edited by Andrew Sneddon and Shannon Devlin
 w1711 graphic novel (CC BY-NC-ND) was read for research only: nothing from
 it is used.
 
+**Stage 3 (decided 27 Nov) replaces this: the game is now the trial.** You
+play Justice Lyle, in court, for one day. See "Stage 3: the courtroom",
+next. Everything from "What v0.8 has" down describes v0.8 and earlier.
+
+## Stage 3: the courtroom (decided 27 Nov)
+
+### What v0.8 had, and why it changed
+
+v0.8 was the clerk's desk, Night One: witnesses came to the table one at
+a time, you set a line against a statement in the book (SPACE compares,
+a candle unit each), stamped what you'd found (ENTER), and the Mayor's
+patience fell as you wrote down things that hurt his case. A play of
+Night One was too confusing. Hunting for two lines that clash across 30
+lines and six statements has no immediacy: you're looking for matching
+text, not hearing anything. And the three nights still had to come before
+the part that matters, the trial.
+
+So the trial becomes the whole game. The contradictions in the night
+data, and the witnesses' answers, are kept: they become the court record
+and the testimony.
+
+### The day
+
+- One day, one room: Carrickfergus, 31 March 1711. The court sits at six
+  in the morning; at two the jury retires, whatever has or hasn't been
+  raised (MacSkimin: six till two).
+- You are Justice Lyle (Upton), the one judge who argued for acquittal.
+  The accused had no counsel (felony, 1711); judges questioned the
+  witnesses. Said once, plainly, at the start.
+- No investigation. You start with the court record: about ten one-line
+  facts, each with who swore it and when (as on 3 March). "The apron: five
+  knots. Margaret Lowry, 3rd March." You choose from a short list, never
+  search text (The Vera Cruz Affair's evidence menus, Ace Attorney's court
+  record: structure only, no names, art or catchphrases).
+- Witnesses testify a line at a time. Their stories have drifted since
+  March towards the Mayor's version (Lowry now swears nine knots, and that
+  Miss Halliday found the apron). They aren't villains: they have heard
+  the story told until it is what they remember.
+
+### Keys and the moment
+
+- O / P: the previous / next line. Hearing a new line takes time.
+- SPACE presses the line: a little time; may draw out more ("Who found
+  it, Mrs Lowry?"), sometimes a new testimony line. Presses are fixed per
+  line (keyword topics in the data), not free questions.
+- ENTER opens the record over the portrait (the testimony line stays in
+  view); Q / A choose a fact; ENTER presents it at this line; X backs out.
+- Let it pass: just move on. You can't fight everything.
+- A fact that contradicts the line: HOLD, SIR! The border flashes, the
+  letters double height (bigstamp) in bright red, the AY bell; Lyle's
+  question typed ("On the 3rd of March you swore five knots. How came you
+  to swear nine?"); the portrait falters (a few cells swapped at once:
+  eyes, mouth); the witness answers; Ormsby answers with the reasoning of
+  the day ("A servant's count, brother. The apron was knotted, and that is
+  the matter."); then "Let it be written: ..." into Lyle's notes.
+- A fact that doesn't bear: "That does not bear upon it, brother." A
+  rebuke, time, and the bench's patience.
+
+### The clock
+
+- 6:00 to 14:00 in 5-minute units (96, one byte). Eight marks top right,
+  struck off on the hour with the AY bell; the time in words on row 1
+  ("A quarter past seven").
+- Costs (draft, for the checker to tune): a new line heard 5 min, a press
+  10, a presentation that bears 15, one that doesn't 20 and the bench -2.
+  Budget about an hour a witness, so a full cross-examination of one
+  witness can't fit if every line is pressed.
+- At two the jury retires: the witness in the box stops, Ormsby sums up,
+  the verdict.
+
+### The bench's patience (Ormsby)
+
+- The stage-2 patience machinery, aimed at the bench: one hidden byte,
+  0-12, from 12; shown only by Ormsby's manner line (bands 10-12, 6-9, 3-5,
+  1-2) and his remarks after each presentation. Never a number.
+- Costs: a wrong presentation -2 (a rebuke); presenting against the Mayor
+  -3 even when it bears; a right one against anyone else 0. Pressing
+  costs time only.
+- At 0: "Brother Lyle, you have said enough." Silenced: SPACE and ENTER do
+  nothing more; the testimony goes on and you can only listen.
+- Humour aims at the Mayor and the bench, never the accused.
+
+### The verdict
+
+- The verdict can turn; the history doesn't. Acquittal is possible but
+  hard: enough contradictions written into the record before the jury
+  AND Isobel's spectral evidence discredited (visions and fits are not
+  evidence, Upton's own argument). Not by proving the accused "good".
+- Spectral evidence (decided 28 Nov): some testimony lines report
+  what Isobel saw ("She cried out that Janet Boyd stood at the bed's
+  foot"). Pressing such a line draws out that no one else saw it ("Did you
+  see Janet Boyd there?" "No, my lord. None saw her but Miss Halliday.").
+  Each admission goes into Lyle's notes; enough of them, with the fact
+  that thirty women were brought in and she was not disturbed, discredit
+  it in the summing-up.
+- Partial outcomes: some acquitted, not all (the contradictions are
+  per accused). Most first plays should fail.
+- Whatever the verdict, the last screen says what really happened:
+  convicted, a year's imprisonment and four times in the pillory; the
+  game's people stand in for real ones (w1711.org).
+- The accused are never called witches, in any ending: "the accused", or
+  by name. Nothing suggests they really were.
+- Isobel is brought in once, unable to speak (dumb throughout the trial,
+  no fit while it lasted: MacSkimin), never questioned. A frightened young
+  woman, not a villain.
+
+### The cross-examination screen
+
+| Rows | What |
+|---|---|
+| 0 | the witness (bright white); eight hour marks, columns 34-41 (candle yellow) |
+| 1 | the time in words (yellow) |
+| 2-15 | the portrait, 16 x 14 characters, columns 8-23 (centred) |
+| 16 | a rule, "3 of 6" (the line) |
+| 17-20 | the testimony line (white, 40 columns, up to 4 rows) |
+| 21 | Ormsby's manner (yellow) |
+| 22 | keys |
+| 23 | Ormsby's last remark (the brief had keys on 22-23; changed 28 Nov) |
+
+The record (ENTER) replaces rows 2-15: a heading, ten facts a row each
+(one line, 36 characters after the mark and number; the chosen one bright white with a mark), and on
+row 15 who swore the chosen one and when. So facts are written to fit
+one row, and "Margaret Lowry, 3rd March" sits below rather than beside.
+
+HOLD, SIR! goes on rows 17-18 (double height, bright red), Lyle's
+question on 19-20; then the answers page through rows 17-20.
+
+### Graphics
+
+- Portraits 16 x 14 characters (128 x 112 pixels): art/portraits.py grows
+  a size per portrait and a delta per face (the faltering cells: pixel
+  bytes only, the attributes unchanged, so no clash when it swaps).
+  2016 bytes raw each: PSCR (now F7C0h, 1080 bytes) has to move down to
+  F5E0h-FDBFh in the trial's bank.
+- Full-screen pictures: the courtroom from the gallery (three judges, the
+  dock, candles at six in the morning); the accused together in the dock,
+  ordinary people; Isobel brought in; the pillory at the end, distant and
+  plain, never gory.
+- Colour as the prologue: mostly black, candle yellow, white for paper
+  and faces, red only for HOLD, SIR! and the verdict. No attribute clash
+  in the faces.
+
+### What carries over, what goes
+
+- Keep: the text engine, the banks and memory plan, ZX0, the portrait
+  tool, bigstamp's double-height letters, aysnd, the night data's
+  contradictions and answers (now record facts and testimony),
+  keytest/simtest with poke and the AY log, the prologue.
+- Goes: the desk, the stamp, the candle, the nights. The prologue's
+  ending is rewritten for Lyle (decided 28 Nov): no clerk, and the Night
+  One card becomes a court card ("31st March 1711 / Carrickfergus")
+  without Isobel's portrait, so her one appearance is in court.
+- The mockup (docs/stage3_mockup.png, drawn at 256 x 192 with the game's
+  font) showed a fact gets 36 characters after the mark and number.
+
+### The court record (draft, from Night One's data)
+
+1. The apron: five knots. Margaret Lowry, 3rd March.
+2. Lowry found the apron on the parlour floor. Margaret Lowry.
+3. None would loose the knots till Miss Halliday offered. Margaret Lowry.
+4. The apron: nine knots, found by Miss Halliday. Margaret Wylie.
+5. She never saw them before her trouble. William Dickey.
+6. She fell into a fit as soon as she saw them. William Dickey.
+7. Wilson's statement is Dickey's, word for word. John Wilson.
+8. Thirty women brought in one by one: not disturbed. Hugh Gilmour.
+9. None in the house knew Janet Moore was coming. Hugh Gilmour.
+10. Mr Gordon sent for Janet Moore, and sat with her first. Robert Gordon.
+
+### The slice: Margaret Lowry
+
+Her testimony (draft), a line at a time, drifted from her March statement:
+the mistress's things thrown about the house (27 Feb); an apron found on
+the parlour floor that had lain in a locked room (press: "Miss Halliday
+found it, and called me to it." a new line, against fact 2); rolled and
+tied with nine strange knots (against fact 1); Miss Halliday loosed them
+without fear (fact 3 agrees: a decoy); inside, the late Mrs Wylie's cap;
+Miss Halliday cried that Janet Boyd stood at the bed's foot (press: none
+saw her but Miss Halliday, a spectral admission). Then the slice ends on
+Lyle's notes and the 1711 card.
+
+Data in data/trial.py, compiled by scripts/trial.py; scripts/trialcheck.py
+prints the record, each line's presses and the facts that contradict it,
+and the time and patience of a few paths.
+
 ## What v0.8 has (stage 2, steps 1-5, Night One)
 
 Stage 2's build order, steps 1-5, for Night One: the night format, the
