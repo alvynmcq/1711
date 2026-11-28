@@ -1,0 +1,130 @@
+# The end of the day (v1.0). Lowry stands down at once; pokes skip to
+# the scene (dy_i=5: Isobel brought in, three pages) and write nine of
+# Lyle's notes (three spectral among them, and the churchgoing). Mayor
+# Ellis: P to his thirty, the record, 8 (the thirty women), HOLD, SIR!:
+# the question, his answer, Ormsby, the note; the bench drops a band (his
+# HOLD costs 3). X Y: no more witnesses. Lyle's charge: the notes in
+# order over two pages, then the spectral evidence put down and the
+# churchgoing; Ormsby's charge, shaken; the jury; the verdict one at a
+# time: Janet Boyd and Bessie Shaw acquitted, the rest guilty; "Some are
+# acquitted"; the pillory; what happened in 1711; the credits.
+frames 5000
+60 SPACE
+100 SPACE
+140 SPACE
+180 SPACE
+220 SPACE
+260 SPACE
+300 SPACE
+340 SPACE
+380 SPACE
+420 SPACE
+460 SPACE
+500 SPACE
+540 SPACE
+580 SPACE
+620 SPACE
+660 SPACE
+700 SPACE
+740 SPACE
+780 SPACE
+820 SPACE
+860 SPACE
+950 SPACE
+1000 X
+1040 Y
+1100 SPACE
+1150 SPACE
+1200 SPACE
+1250 SPACE
+1300 SPACE
+1350 SPACE
+1400 SPACE
+1450 SPACE
+1500 SPACE
+1550 SPACE
+1600 SPACE
+1650 P
+1700 SPACE
+1750 ENTER
+1800 8
+1850 ENTER
+1900 SPACE
+1950 SPACE
+2000 SPACE
+2050 SPACE
+2100 SPACE
+2150 SPACE
+2200 SPACE
+2250 SPACE
+2350 X
+2400 Y
+2450 SPACE
+2500 SPACE
+2550 SPACE
+2600 SPACE
+2650 SPACE
+2700 SPACE
+2750 SPACE
+2800 SPACE
+2850 SPACE
+2900 SPACE
+2950 SPACE
+3000 SPACE
+3050 SPACE
+3100 SPACE
+3150 SPACE
+3200 SPACE
+3250 SPACE
+3300 SPACE
+3350 SPACE
+3400 SPACE
+3450 SPACE
+3500 SPACE
+3550 SPACE
+3600 SPACE
+3650 SPACE
+3700 SPACE
+3750 SPACE
+3800 SPACE
+3850 SPACE
+3900 SPACE
+3950 SPACE
+4000 SPACE
+4050 SPACE
+4100 SPACE
+4150 SPACE
+4200 SPACE
+4250 SPACE
+4300 SPACE
+4350 SPACE
+4400 SPACE
+4450 SPACE
+4500 SPACE
+4550 SPACE
+4600 SPACE
+4650 SPACE
+4700 SPACE
+4750 SPACE
+4800 SPACE
+poke 1000 dy_i=5
+poke 1000 tr_nn=9
+poke 1000 tr_nflag+1=1
+poke 1000 tr_nord+0=1
+poke 1000 tr_nflag+2=1
+poke 1000 tr_nord+1=2
+poke 1000 tr_nflag+4=1
+poke 1000 tr_nord+2=4
+poke 1000 tr_nflag+5=1
+poke 1000 tr_nord+3=5
+poke 1000 tr_nflag+8=1
+poke 1000 tr_nord+4=8
+poke 1000 tr_nflag+9=1
+poke 1000 tr_nord+5=9
+poke 1000 tr_nflag+10=1
+poke 1000 tr_nord+6=10
+poke 1000 tr_nflag+12=1
+poke 1000 tr_nord+7=12
+poke 1000 tr_nflag+17=1
+poke 1000 tr_nord+8=17
+shot 1200 1300 1400 1500 1600 1700 1800 1900 2000 2100 2200 2300 2400 2500 2600 2700 2800 2900 3000 3100 3200 3300 3400 3500 3600 3700 3800 3900 4000 4100 4200 4300 4400 4500 4600 4700 4800 4900

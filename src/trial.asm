@@ -1,10 +1,14 @@
 ; ============================================================
-;  The trial (stage 3, v0.9): a witness's cross-examination.
-;  The words and tables come from trial.inc (scripts/trial.py),
-;  read in place in TRIALBANK; this code draws them and keeps the
-;  clock, the bench's patience and Lyle's notes.
+;  The trial (stage 3, v1.0): the day, 31st March 1711.
+;  The witnesses in turn (tr_order), each read in place from its
+;  own bank (witab: bank, header; scripts/trial.py writes the
+;  headers, build.py the banks), a scene between them (Isobel
+;  brought in), one clock from six till two, the bench's patience
+;  and Lyle's notes for the whole day; then the charges, the jury
+;  and the verdict. The common tables (the record, the notes, the
+;  bench, the clock) are in trialc.inc, below C000h.
 ;
-;  The screen:
+;  The cross-examination screen:
 ;    row 0       the witness (bright white); eight hour marks, cells 26-31
 ;    row 1       the time in words
 ;    rows 2-15   the portrait, 16 x 14, columns 8-23 (or the record)
@@ -15,48 +19,122 @@
 ;    row 23      Ormsby's last remark
 ;  O / P a line (heard the first time: TR_CLINE minutes). SPACE presses
 ;  it (TR_CPRESS, once a line). ENTER opens the record over the
-;  portrait: Q / A or 1-0 a fact, ENTER presents it, X back. A fact
-;  that contradicts the line: HOLD, SIR! (TR_CHOLD), the witness
-;  falters, answers, Ormsby answers, Lyle has it written. Anything
-;  else: a rebuke, TR_CWRONG, and the bench loses TR_PWRONG; at 0
-;  Lyle is silenced. X: let her stand down. At TR_END the bell.
-;  Then Lyle's notes.
+;  portrait: Q / A or 1-0 a fact (two pages of ten), ENTER presents it,
+;  X back. A fact that contradicts the line: HOLD, SIR! (TR_CHOLD and
+;  the witness's bench cost: the Mayor's 3), the witness falters,
+;  answers, Ormsby answers, Lyle has it written. Anything else: a
+;  rebuke, TR_CWRONG, and the witness's wrong cost; at 0 Lyle is
+;  silenced for the day. X: let the witness stand down. The box's
+;  minutes run out, or two strikes: the bell.
 ; ============================================================
 TWHT    EQU 07h             ; the testimony
 TBWHT   EQU 47h             ; Lyle's words, headings
 TYEL    EQU 06h             ; the bench, the time
 TBYEL   EQU 46h             ; the hour marks
-TBRED   EQU 42h             ; HOLD, SIR! (red only for this and the verdict)
+TBRED   EQU 42h             ; HOLD, SIR! and the verdict (red only for these)
 PROW    EQU 2               ; the portrait: rows 2-15, columns 8-23
 PCOL    EQU 8
 TROW    EQU 17              ; the testimony, rows 17-20
 TROWS   EQU 4
 
-trial:  ld a,TRIALBANK      ; the trial's text and tables, read in place
-        call page           ; (op_trial's LOAD pages the scripts back)
-        xor a
+; the witness in the box: its header, copied from its bank (WH_SIZE)
+w_name      EQU wh+0
+w_lines     EQU wh+2
+w_nl        EQU wh+4
+w_port      EQU wh+5
+w_falter    EQU wh+6
+w_opening   EQU wh+8
+w_after_hold EQU wh+10
+w_asked     EQU wh+12
+w_raised    EQU wh+14
+w_stand_down EQU wh+16
+w_bell      EQU wh+18
+w_pnone     EQU wh+20       ; press_none: question, answer
+w_called    EQU wh+24
+w_box       EQU wh+26
+w_hold      EQU wh+27
+w_wrong     EQU wh+28
+
+trial:  xor a               ; the day
         ld (border),a
         out (254),a
         ld hl,0
         ld (tr_t),hl
-        ld (tr_cur),a
         ld (tr_sil),a
-        ld (tr_over),a
         ld (tr_nn),a
         ld (tr_reb),a
-        ld (tr_spec),a
         ld (tr_sel),a
-        ld (pr_mv),a
+        ld (dy_i),a
+        ld (dy_two),a
         ld a,TR_PAT0
         ld (tr_pat),a
         ld hl,tr_nflag
-        ld b,16
+        ld b,32
 ti1:    ld (hl),0
         inc hl
         djnz ti1
+dy1:    ld a,(dy_i)         ; the next witness or scene, if it isn't two
+        cp TR_NORD
+        jr nc,dy_end
+        call daydone
+        jr nc,dy_late
+        ld a,(dy_i)
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,tr_order
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld b,(hl)
+        or a
+        ld a,b
+        jr nz,dy_sc
+        call witness
+        jr dy_n
+dy_sc:  call scene
+dy_n:   ld hl,dy_i
+        inc (hl)
+        jr dy1
+dy_late:
+        ld a,1
+        ld (dy_two),a
+dy_end: jp charge
+
+daydone:                    ; carry clear once it is two o'clock
+        ld hl,(tr_t)
+        ld de,TR_DAY
+        or a
+        sbc hl,de
+        ret
+
+; ---- a witness: A = its number (witab) ----
+witness:
+        ld hl,witab
+        call farent
+        call page           ; its bank, for as long as it is in the box
+        ld de,wh
+        ld bc,WH_SIZE
+        ldir
+        xor a               ; the court calls it
+        call clsa
+        call drawtime
+        ld hl,(w_called)
+        ld b,4
+        ld a,TWHT
+        call typeblk
+        call waitsp
+        xor a
+        ld (tr_cur),a
+        ld (tr_over),a
+        ld (pr_mv),a
+        ld hl,(tr_t)
+        ld (w_t0),hl
         ld b,0              ; each line: shown unless it is drawn out later
-ti2:    ld a,b
-        cp TR_NL
+ti2:    ld a,(w_nl)
+        ld c,a
+        ld a,b
+        cp c
         jr nc,ti3
         push bc
         call lineaddr
@@ -73,11 +151,11 @@ ti2:    ld a,b
         ld (hl),a
         inc b
         jr ti2
-ti3:    ld hl,(tr_opening)
+ti3:    ld hl,(w_opening)
         ld (tr_rem),hl
         call tr_draw
         call hearcur
-tl:     ld a,(tr_over)      ; the bell: she stands down
+tl:     ld a,(tr_over)      ; the bell: the witness stands down
         or a
         jr nz,tl_bell
         call waitkey
@@ -101,24 +179,75 @@ tl4:    cp 'X'
         jr nz,tl
         call standdown
         jr nc,tl
-        ld hl,(tr_stand_down)
+        ld hl,(w_stand_down)
         jr tr_go
 tl_bell:
-        ld hl,(tr_bell)
+        call daydone        ; the box's time, or two o'clock
+        ld hl,(w_bell)
+        jr c,tr_go
+        ld hl,(tr_jury_bell)
 tr_go:  push hl
         call clrtest
         pop hl
         ld b,TROW
         ld a,TYEL
         call typeblk
-        call waitp
-        jp notes
+        jp waitp
+
+; ---- a scene: A = its number (tr_scenes): a picture, pages of text ----
+scene:  add a,a
+        ld l,a
+        ld h,0
+        ld de,tr_scenes
+        add hl,de
+        call ldw
+        ld a,(hl)           ; db picture, minutes, pages; dw a block a page
+        inc hl
+        push hl
+        call drawpic
+        pop hl
+        ld a,(hl)
+        ld (sc_cost),a
+        inc hl
+        ld b,(hl)
+        inc hl
+sc1:    push bc
+        push hl
+        ld a,15
+        ld c,8
+        call clrrows
+        pop hl
+        push hl
+        call ldw
+        ld b,15
+        ld a,TWHT
+        call typeblk
+        call waitsp
+        pop hl
+        inc hl
+        inc hl
+        pop bc
+        djnz sc1
+        ld hl,(tr_t)        ; the time it took
+        ld a,(sc_cost)
+        ld e,a
+        ld d,0
+        add hl,de
+        ld (tr_t),hl
+        ret
+
+waitsp: ld hl,prompt        ; SPACE, then the prompt gone
+        call textat
+        call waitspace
+        ld a,23
+        ld c,1
+        jp clrrows
 
 ; ---- the whole screen (the line itself is shown by the caller) ----
 tr_draw:
         xor a
         call clsa
-        ld hl,tr_name
+        ld hl,(w_name)
         ld bc,0*256+1
         ld a,TBWHT
         call strat
@@ -132,7 +261,7 @@ tr_draw:
         jp drawport
 
 drawport:
-        ld a,TRIAL_PORT
+        ld a,(w_port)
         ld bc,PROW*256+PCOL
         jp portrait
 
@@ -141,14 +270,18 @@ keysnow:                    ; row 22: the keys (X shown at the last line),
         ld a,(tr_sil)
         or a
         jr nz,keys
+        ld a,(w_nl)
+        ld c,a
         ld a,(tr_cur)       ; a line shown after this one?
 ks1:    inc a
-        cp TR_NL
+        cp c
         jr nc,ks2
         push af
+        push bc
         call lsaddr
         bit 0,(hl)
-        pop hl              ; (A back into H: only the count matters)
+        pop bc
+        pop hl              ; (A back into H)
         ld a,h
         jr z,ks1
         ld hl,keys_main
@@ -171,7 +304,7 @@ lineaddr:                   ; HL = line A's record (9 bytes)
         add hl,hl
         add hl,hl
         add hl,de
-        ld de,tr_lines
+        ld de,(w_lines)
         add hl,de
         ret
 
@@ -204,13 +337,17 @@ pl_2:   pop af
         jp hearcur
 
 nextline:
+        ld a,(w_nl)
+        ld c,a
         ld a,(tr_cur)
 nl_1:   inc a
-        cp TR_NL
+        cp c
         ret nc
         push af
+        push bc
         call lsaddr
         bit 0,(hl)
+        pop bc
         jr nz,nl_2
         pop af
         jr nl_1
@@ -255,7 +392,7 @@ press:  ld a,(tr_sil)
         call lsaddr
         bit 2,(hl)
         jr z,pr0
-        ld hl,(tr_asked)    ; once a line
+        ld hl,(w_asked)     ; once a line
         jp setrem
 pr0:    set 2,(hl)
         ld a,TR_CPRESS
@@ -269,7 +406,7 @@ pr0:    set 2,(hl)
         ld a,h
         or l
         jr nz,pr1
-        ld hl,tr_pnone
+        ld hl,w_pnone
 pr1:    push hl
         call clrtest
         pop hl
@@ -281,7 +418,7 @@ pr1:    push hl
         pop hl
         inc hl
         inc hl
-        call ldw            ; she answers, under it
+        call ldw            ; the answer, under it
         ld a,TWHT
         call typeblk
         call waitp
@@ -303,18 +440,9 @@ pr1:    push hl
         ld a,1
         ld (pr_mv),a
 pr2:    ld a,(hl)           ; a note for Lyle
-        inc hl
         cp 0FFh
         jr z,pr_end
-        ld e,(hl)           ; spectral
-        push de
-        call writenote
-        pop de
-        ld a,e
-        or a
-        jr z,pr_end
-        ld hl,tr_spec
-        inc (hl)
+        call noteonce
 pr_end: ld hl,(tr_after_press)
         call setrem
         ld a,(pr_mv)
@@ -325,6 +453,15 @@ pr_end: ld hl,(tr_after_press)
         ld (pr_mv),a
         call rule
         jp hearcur          ; the line it drew out, heard
+
+noteonce:                   ; note A written, unless it was already
+        ld e,a
+        ld d,0
+        ld hl,tr_nflag
+        add hl,de
+        bit 0,(hl)
+        ret nz
+        jp writenote
 
 silkey: ld hl,(tr_silent_key)
         jp setrem
@@ -369,26 +506,12 @@ noteblk:                    ; HL = note A's block
 record: ld a,(tr_sil)
         or a
         jp nz,silkey
-        ld a,2
-        ld c,14
-        call clrrows
-        ld hl,txt_record
-        call textat
-        ld b,0
-rd1:    push bc
-        ld a,b
-        call factrow
-        pop bc
-        inc b
-        ld a,b
-        cp TR_NF
-        jr c,rd1
-        call sworn
+        call rd_draw
         ld hl,keys_rec
         call keys
 rk:     call waitkey
         cp 'X'
-        jr z,rec_close
+        jp z,rec_close
         cp 13
         jr nz,rk1
         call rec_close
@@ -407,26 +530,74 @@ rk2:    cp 'A'
         cp TR_NF
         jr nc,rk
         jr rk_set
-rk3:    sub '0'             ; 1-9, 0 (the tenth)
+rk3:    sub '0'             ; 1-9, 0 (the tenth), on this page
         jr c,rk
         cp 10
         jr nc,rk
         dec a
         jp p,rk4
         ld a,9
-rk4:    cp TR_NF
+rk4:    ld b,a
+        call rd_page
+        add a,b
+        cp TR_NF
         jr nc,rk
 rk_set: ld b,a              ; the old row plain, the new one lit
-        ld a,(tr_sel)
+        call rd_page
         ld c,a
         ld a,b
-        ld (tr_sel),a
-        ld a,c
+        ld hl,tr_sel
+        ld d,(hl)
+        ld (hl),a
+        call rd_page
+        cp c
+        jr z,rk_same
+        call rd_draw        ; a page turned
+        jr rk
+rk_same:
+        ld a,d
         call factrow
         ld a,(tr_sel)
         call factrow
         call sworn
         jr rk
+
+rd_page:                    ; A = the first fact on the chosen one's page
+        ld a,(tr_sel)       ; (keeps BC, DE)
+        cp 10
+        ld a,0
+        ret c
+        ld a,10
+        ret
+
+rd_draw:                    ; the record's page, with the chosen fact
+        ld a,2
+        ld c,14
+        call clrrows
+        ld hl,txt_record
+        call textat
+        ld a,TR_NF
+        cp 11
+        jr c,rd0
+        call rd_page        ; "1 of 2" when there are two pages
+        or a
+        ld hl,txt_p1
+        jr z,rdp
+        ld hl,txt_p2
+rdp:    call textat
+rd0:    call rd_page
+        ld b,a
+        ld c,10
+rd1:    ld a,b
+        cp TR_NF
+        jr nc,rd2
+        push bc
+        call factrow
+        pop bc
+        inc b
+        dec c
+        jr nz,rd1
+rd2:    jp sworn
 
 rec_close:
         ld a,2
@@ -435,7 +606,7 @@ rec_close:
         call drawport
         jp keysnow
 
-factrow:                    ; fact A in row 4+A: "> 1 fact", lit if chosen
+factrow:                    ; fact A in row 4+(A mod 10): "> 1 fact", lit if chosen
         ld (fr_i),a
         ld hl,fr_buf
         ld c,a
@@ -449,6 +620,10 @@ fr1:    ld (hl),a
         ld (hl),' '
         inc hl
         ld a,c
+        cp 10
+        jr c,fr1b
+        sub 10
+fr1b:   ld (fr_row),a
         inc a
         cp 10
         jr c,fr2
@@ -474,7 +649,7 @@ fr3:    ld a,(hl)           ; the fact after it
         inc de
         or a
         jr nz,fr3
-        ld a,(fr_i)
+        ld a,(fr_row)
         add a,4
         ld b,a
         ld c,1
@@ -534,10 +709,10 @@ ps_hit: inc hl
         ld a,(hl)
         or a
         jp z,hold
-        ld hl,(tr_raised)   ; already had from her
+        ld hl,(w_raised)    ; already had
         jp setrem
 
-wrong:  ld a,(tr_cur)       ; Ormsby: its own words, or the next rebuke
+wrong:  ld a,(tr_cur)       ; Ormsby: his own words, or the next rebuke
         call lineaddr
         ld de,7
         add hl,de
@@ -577,18 +752,29 @@ wr_c:   call ldw
         ld a,TYEL
         call typeblk
         call waitp
-        ld a,(tr_pat)
-        sub TR_PWRONG
-        jr nc,wr3
-        xor a
-wr3:    ld (tr_pat),a
-        call manner
         ld a,TR_CWRONG
         call spend
+        ld a,(w_wrong)
+        call bench
+        ld hl,(tr_after_wrong)
+        call setrem
+        xor a
+        jp showline
+
+bench:  ld c,a              ; the bench loses A; silenced at 0
+        ld a,(tr_pat)
+        sub c
+        jr nc,bn1
+        xor a
+bn1:    ld (tr_pat),a
+        call manner
         ld a,(tr_pat)
         or a
-        jr nz,wr4
-        ld a,1              ; silenced, for the rest of the day
+        ret nz
+        ld a,(tr_sil)
+        or a
+        ret nz
+        inc a               ; silenced, for the rest of the day
         ld (tr_sil),a
         call clrtest
         ld hl,(tr_silenced)
@@ -597,11 +783,7 @@ wr3:    ld (tr_pat),a
         call typeblk
         call waitp
         call manner
-        call keysnow
-wr4:    ld hl,(tr_after_wrong)
-        call setrem
-        xor a
-        jp showline
+        jp keysnow
 
 ; ---- HOLD, SIR! ----
 hold:   call flash
@@ -616,26 +798,15 @@ hd1:    ld (hl),TBRED
         ld a,TROW
         ld (bs_row),a
         ld a,83             ; "HOLD, SIR!", 9 pixels a letter, centred
-        ld (t_x),a
         ld hl,txt_hold
-hd2:    ld a,(hl)
-        or a
-        jr z,hd3
-        inc hl
-        push hl
-        call bigch
-        pop hl
-        ld a,(t_x)
-        add a,9
-        ld (t_x),a
-        jr hd2
-hd3:    ld hl,(hd_rec)      ; Lyle's question
+        call bigstr
+        ld hl,(hd_rec)      ; Lyle's question
         call ldw
         ld b,TROW+2
         ld a,TBWHT
         call typeblk
         call waitp
-        xor a               ; she falters
+        xor a               ; the witness falters
         call falter
         call clrtest
         ld hl,(hd_rec)
@@ -657,14 +828,29 @@ hd3:    ld hl,(hd_rec)      ; Lyle's question
         call waitp
         ld a,(hd_note)
         call writenote
-        ld a,8              ; she is herself again
+        ld a,8              ; the witness is steady again
         call falter
         ld a,TR_CHOLD
         call spend
-        ld hl,(tr_after_hold)
+        ld a,(w_hold)       ; the Mayor's cost the bench
+        call bench
+        ld hl,(w_after_hold)
         call setrem
         xor a
         jp showline
+
+bigstr: ld (t_x),a          ; string HL in double height at x A, row bs_row
+bgs1:   ld a,(hl)
+        or a
+        ret z
+        inc hl
+        push hl
+        call bigch
+        pop hl
+        ld a,(t_x)
+        add a,9
+        ld (t_x),a
+        jr bgs1
 
 flash:  ld b,6              ; the border, red and white
 fl1:    halt
@@ -680,7 +866,7 @@ fl2:    out (254),a
         ret
 
 falter: ld (fa_o),a         ; A = 0: the faltering cells in; 8: back
-        ld hl,TRIAL_FALTER
+        ld hl,(w_falter)
         ld b,(hl)
         inc hl
 fa1:    push bc
@@ -718,7 +904,7 @@ fa2:    ld a,(hl)
         djnz fa1
         ret
 
-; ---- X: let her stand down (carry set: yes) ----
+; ---- X: let the witness stand down (carry set: yes) ----
 standdown:
         ld a,23
         ld c,1
@@ -738,8 +924,8 @@ sd2:    ld hl,(tr_rem)
         ret
 
 ; ---- the clock ----
-spend:  push af             ; A minutes pass; the bell on the hour
-        ld hl,(tr_t)
+spend:  push af             ; A minutes pass; the bell on the hour; the
+        ld hl,(tr_t)        ; box's time or two o'clock: tr_over
         call hours
         ld (sp_h),a
         pop af
@@ -756,11 +942,19 @@ spend:  push af             ; A minutes pass; the bell on the hour
         call aysnd
         call marks
 sp1:    call drawtime
-        ld hl,(tr_t)
-        ld de,TR_END
+        call daydone
+        jr nc,sp_over
+        ld hl,(tr_t)        ; minutes in the box
+        ld de,(w_t0)
+        or a
+        sbc hl,de
+        ld a,(w_box)
+        ld e,a
+        ld d,0
         or a
         sbc hl,de
         ret c
+sp_over:
         ld a,1
         ld (tr_over),a
         ret
@@ -778,12 +972,15 @@ dv1:    or a
 dv2:    add hl,de
         ret
 
-drawtime:                   ; row 1: the time in words
+drawtime:                   ; row 1: the time in words (two at the latest)
         ld a,1
         ld c,1
         call clrrows
+        call daydone
         ld hl,(tr_t)
-        ld c,5
+        jr c,dt1
+        ld hl,TR_DAY
+dt1:    ld c,5
         call divc
         add a,a
         ld l,a
@@ -794,7 +991,6 @@ drawtime:                   ; row 1: the time in words
         ld bc,1*256+1
         ld a,TYEL
         jp strat
-
 marks:                      ; row 0, cells 26-31: eight candles, one burnt
         ld b,8              ; down to the dish for each hour gone
         ld h,40h
@@ -905,9 +1101,10 @@ rl2:    ld (hl),TYEL
         djnz rl2
         ld bc,0             ; B = this line's place, C = lines shown
         ld e,0
-rl3:    ld a,e
-        cp TR_NL
-        jr nc,rl5
+rl3:    ld a,(w_nl)
+        cp e
+        jr z,rl5
+        ld a,e
         push bc
         push de
         call lsaddr
@@ -1008,23 +1205,53 @@ waitp:  ld a,23             ; the SPACE prompt over row 23, then the
         ld hl,(tr_rem)
         jp remark
 
-; ---- Lyle's notes, at the end ----
-notes:  xor a
+; ============================================================
+;  The end of the day: two o'clock, or no more witnesses; Lyle's
+;  charge (what he has written, and what it comes to), Ormsby's,
+;  the jury, the verdict, one accused at a time.
+;  The spectral evidence is discredited if a note of the thirty is
+;  written and at least TR_SPECN notes of what only she saw; then
+;  each accused whose score reaches TR_ACQ is acquitted (a note on
+;  them all counts 1, a note on her 2). Otherwise all are convicted.
+; ============================================================
+charge: xor a
         call clsa
-        ld hl,nt_head
-        call textlist
-        ld b,4
+        ld a,(dy_two)
+        or a
+        ld hl,tv_no_more
+        jr z,cg0
+        ld hl,ay_bell       ; the bell at two
+        call aysnd
+        ld hl,tv_two
+cg0:    call ldw
+        ld b,3
+        ld a,TYEL
+        call typeblk
+        call waitsp
+        call weigh
+        xor a               ; Lyle's charge
+        call clsa
+        ld hl,(tv_lyle_head)
+        ld bc,1*256+1
+        ld a,TBYEL
+        call strat
         ld a,(tr_nn)
         or a
-        jr nz,nt1
-        ld hl,txt_nonote
-        ld c,1
-        ld a,TYEL
-        call strat
-        jr nt3
-nt1:    xor a
+        jr nz,cg1
+        ld hl,(tv_lyle_none)
+        ld b,3
+        ld a,TWHT
+        call typeblk
+        call waitsp
+        jr cg_orm
+cg1:    ld hl,(tv_lyle_open)
+        ld b,3
+        ld a,TBWHT
+        call typeblk
+        inc b
+        xor a
         ld (nt_i),a
-nt2:    ld a,(nt_i)
+cg2:    ld a,(nt_i)         ; what he has written, in order
         ld e,a
         ld d,0
         ld hl,tr_nord
@@ -1033,17 +1260,245 @@ nt2:    ld a,(nt_i)
         push bc
         call noteblk
         pop bc
-        ld a,TWHT
-        call drawclause
-        inc b
+        call para
         ld hl,nt_i
         inc (hl)
         ld a,(tr_nn)
         cp (hl)
-        jr nz,nt2
-nt3:    ld hl,prompt
-        call textat
-        jp waitspace
+        jr nz,cg2
+        ld hl,(tv_lyle_weak)    ; what it comes to
+        ld a,(vd_disc)
+        or a
+        jr z,cg3
+        ld hl,(tv_lyle_spectral)
+cg3:    call parab
+        ld a,(vd_flag)
+        and 4
+        jr z,cg4
+        ld hl,(tv_lyle_church)
+        call parab
+cg4:    call waitsp
+cg_orm: xor a               ; Ormsby's charge
+        call clsa
+        ld hl,(tv_ormsby_head)
+        ld bc,1*256+1
+        ld a,TBYEL
+        call strat
+        ld b,3
+        ld hl,tv_ormsby
+        ld a,(hl)
+        ld (og_n),a
+        inc hl
+        ld (og_p),hl
+og1:    ld a,(og_n)         ; before the last: shaken, if Lyle has shown it
+        cp 1
+        jr nz,og2
+        ld a,(vd_disc)
+        or a
+        jr z,og2
+        ld hl,(tv_ormsby_shaken)
+        ld a,TYEL
+        call parac
+og2:    ld hl,(og_p)
+        call ldw
+        ld a,TYEL
+        call parac
+        ld hl,(og_p)
+        inc hl
+        inc hl
+        ld (og_p),hl
+        ld hl,og_n
+        dec (hl)
+        jr nz,og1
+        call waitsp
+        xor a               ; the jury
+        call clsa
+        ld hl,(tv_jury)
+        ld b,10
+        ld a,TWHT
+        call typeblk
+        ld b,100
+cg7:    halt
+        djnz cg7
+        call waitsp
+        call verdict
+        xor a               ; what it comes to
+        call clsa
+        ld hl,(tv_all_guilty)
+        ld a,(vd_n)
+        or a
+        jr z,cg8
+        ld hl,(tv_none)
+        cp TR_NACC
+        jr z,cg8
+        ld hl,(tv_some)
+cg8:    ld b,4
+        ld a,TWHT
+        call typeblk
+        jp waitsp
+
+para:   ld a,TWHT           ; block HL from row B, a blank row after; a
+parac:  ld (pa_a),a         ; new page first if it won't fit (rows 3-21)
+        ld a,(hl)
+        add a,b
+        cp 23
+        jr c,pa1
+        push hl
+        call waitsp
+        ld a,3
+        ld c,20
+        call clrrows
+        pop hl
+        ld b,3
+pa1:    ld a,(pa_a)
+        call typeblk
+        inc b
+        ret
+
+parab:  ld a,TBWHT          ; Lyle's own words, bright
+        jr parac
+
+; ---- what the notes come to ----
+weigh:  xor a               ; vd_flag: 1 spectral, 2 the thirty, 4 character
+        ld (vd_flag),a      ; (or of all written); vd_spec: how many spectral
+        ld (vd_spec),a
+        ld (vd_disc),a
+        ld b,a
+wg1:    ld a,b
+        cp TR_NN
+        jr nc,wg3
+        ld e,b
+        ld d,0
+        ld hl,tr_nflag
+        add hl,de
+        ld a,(hl)
+        or a
+        jr z,wg2
+        ld hl,tr_ntag+1
+        add hl,de
+        add hl,de
+        ld a,(hl)
+        ld c,a
+        ld hl,vd_flag
+        or (hl)
+        ld (hl),a
+        bit 0,c
+        jr z,wg2
+        ld hl,vd_spec
+        inc (hl)
+wg2:    inc b
+        jr wg1
+wg3:    ld a,(vd_flag)      ; the thirty, and enough she alone saw
+        and 2
+        ret z
+        ld a,(vd_spec)
+        cp TR_SPECN
+        ret c
+        ld a,1
+        ld (vd_disc),a
+        ret
+
+score:  ld c,a              ; A = accused C's score (C a bit mask)
+        ld b,0              ; B: the note
+        ld e,0              ; E: the score
+sc_1:   ld a,b
+        cp TR_NN
+        jr nc,sc_3
+        push de
+        ld e,b
+        ld d,0
+        ld hl,tr_nflag
+        add hl,de
+        ld a,(hl)
+        ld hl,tr_ntag
+        add hl,de
+        add hl,de
+        pop de
+        or a
+        jr z,sc_2
+        ld a,(hl)
+        inc e               ; a note on them all: 1
+        cp 0FFh
+        jr z,sc_2
+        dec e
+        and c
+        jr z,sc_2
+        inc e               ; a note on her: 2
+        inc e
+sc_2:   inc b
+        jr sc_1
+sc_3:   ld a,e
+        ret
+
+; ---- the verdict, one at a time ----
+verdict:
+        xor a
+        call clsa
+        ld a,1
+        ld (bs_row),a
+        ld a,78             ; "THE VERDICT", double height, centred
+        ld hl,txt_verdict
+        call bigstr
+        ld hl,ATTR+1*32
+        ld b,64
+vd0:    ld (hl),TBWHT
+        inc hl
+        djnz vd0
+        xor a
+        ld (vd_n),a
+        ld (vd_i),a
+        ld a,1
+        ld (vd_bit),a
+vd1:    ld a,(vd_i)         ; row 5 + 2i: her name
+        add a,a
+        add a,5
+        ld (vd_row),a
+        ld b,a
+        ld a,(vd_i)
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,tr_acc
+        add hl,de
+        call ldw
+        ld c,3
+        ld a,TWHT
+        call strat
+        ld b,40             ; the court waits
+vd2:    halt
+        djnz vd2
+        ld a,(vd_disc)
+        or a
+        jr z,vd_g
+        ld a,(vd_bit)
+        call score
+        cp TR_ACQ
+        jr c,vd_g
+        ld hl,vd_n          ; not guilty
+        inc (hl)
+        ld hl,ay_bell
+        call aysnd
+        ld hl,(tv_not_guilty)
+        ld a,TBWHT
+        jr vd3
+vd_g:   ld hl,ay_low
+        call aysnd
+        ld hl,(tv_guilty)
+        ld a,TBRED
+vd3:    push af
+        ld a,(vd_row)
+        ld b,a
+        pop af
+        ld c,20
+        call strat
+        ld hl,vd_bit
+        sla (hl)
+        ld hl,vd_i
+        inc (hl)
+        ld a,(hl)
+        cp TR_NACC
+        jr c,vd1
+        jp waitsp
 
 ; ---- small helpers (from v0.8's night.asm) ----
 typeblk:                    ; type block HL at row B in A (B after: the row below)
@@ -1233,42 +1688,47 @@ aysnd:  ld a,(hl)           ; AY: register writes, no player (reg, value ..., 0F
 ; ---- text ----
 keys_main:  db 22,1,TWHT,"O P lines   SPACE press   ENTER record",0
 keys_last:  db 22,1,TWHT,"O back  SPACE press  ENTER record  X end",0
-keys_sil:   db 22,1,TWHT,"O P  lines          X  let her go",0
+keys_sil:   db 22,1,TWHT,"O P  lines          X  let them go",0
 keys_rec:   db 22,1,TWHT,"Q A  a fact   ENTER  present   X  back",0
 txt_record: db 3,1,TBWHT,"THE COURT RECORD",0
-txt_sd:     db 23,1,TBWHT,"Let her stand down?  Y  N",0
+txt_p1:     db 3,26,TYEL,"1 of 2",0
+txt_p2:     db 3,26,TYEL,"2 of 2",0
+txt_sd:     db 23,1,TBWHT,"Let them stand down?  Y  N",0
 txt_hold:   db "HOLD, SIR!",0
+txt_verdict: db "THE VERDICT",0
 txt_written: db "Let it be written:",0
 txt_of:     db " of ",0
-txt_nonote: db "Nothing was written.",0
-nt_head:    db 1,1,TBYEL,"JUSTICE LYLE'S NOTES",0
-            db 2,1,TWHT,"Margaret Lowry, 31st March 1711",0
-            db 0FFh
 
 ay_bell:    db 0,0E0h,1,0,7,3Eh,8,10h,11,0,12,40h,13,0,0FFh
 ay_hold:    db 0,70h,1,0,7,3Eh,8,10h,11,0,12,28h,13,0,0FFh
 ay_low:     db 0,0,1,3,7,3Eh,8,10h,11,0,12,10h,13,0,0FFh
 
-; ---- state ----
+; ---- state: the day ----
 tr_t:       dw 0            ; minutes since the court sat
 tr_pat:     db TR_PAT0      ; the bench's patience, 0-12
-tr_sil:     db 0            ; Lyle silenced
-tr_over:    db 0            ; the bell has rung for the end
-tr_cur:     db 0            ; the line
+tr_sil:     db 0            ; Lyle silenced, for the day
 tr_sel:     db 0            ; the fact chosen in the record
 tr_reb:     db 0            ; the next rebuke
 tr_nn:      db 0            ; notes written
-tr_spec:    db 0            ; of them, what only Isobel saw
 tr_rem:     dw 0            ; Ormsby's last remark
+tr_nflag:   ds 32           ; per note: written
+tr_nord:    ds 32           ; the notes, in the order written
+dy_i:       db 0            ; the witness or scene (tr_order)
+dy_two:     db 0            ; the day ended at two
+; ---- state: the witness in the box ----
+wh:         ds WH_SIZE      ; its header (from its bank)
+w_t0:       dw 0            ; when it was called
+tr_over:    db 0            ; the bell has rung for it
+tr_cur:     db 0            ; the line
 tr_ls:      ds 16           ; per line: shown, heard, pressed
-tr_nflag:   ds 16           ; per note: written
-tr_nord:    ds 16           ; the notes, in the order written
+; ---- working ----
 pr_rec:     dw 0
 pr_mv:      db 0
 hd_rec:     dw 0
 hd_note:    db 0
 wn_i:       db 0
 fr_i:       db 0
+fr_row:     db 0
 fr_buf:     ds 42
 rl_buf:     ds 10
 fa_o:       db 0
@@ -1281,6 +1741,17 @@ dc_c:       db 0
 bs_row:     db 0
 bc_g:       dw 0
 bc_y:       db 0
+sc_cost:    db 0
+pa_a:       db 0
+og_n:       db 0
+og_p:       dw 0
+vd_flag:    db 0
+vd_spec:    db 0
+vd_disc:    db 0
+vd_n:       db 0
+vd_i:       db 0
+vd_bit:     db 0
+vd_row:     db 0
 
 abuf:                       ; colours of a screen being drawn (veil); the
         INCLUDE "boot.asm"  ; boot stub sits here: it runs once, before

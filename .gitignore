@@ -23,3 +23,8 @@ src/bank*.sym
 src/bootsyms.inc
 src/trial.inc
 src/trialsym.inc
+src/pic_*.inc
+src/trialc.inc
+src/trialw_*.inc
+src/witnesses.txt
+src/wsize.*

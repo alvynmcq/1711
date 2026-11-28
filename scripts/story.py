@@ -15,7 +15,7 @@ says or swears, never as fact:
 """
 from script import BLK, YEL, BYEL, WHT, BWHT, RED, BRED, CYN
 
-VERSION = "v0.9 slice"
+VERSION = "v1.0"
 
 TITLE = [
     ("cls", WHT),
@@ -120,24 +120,38 @@ PROLOGUE = [
     ("text", 15, 2, YEL, "Press a line to hear more. Where it"),
     ("text", 16, 2, YEL, "goes against what was sworn in March,"),
     ("text", 17, 2, YEL, "present the record."),
-    ("text", 19, 2, BWHT, "This slice: Margaret Lowry, the first"),
-    ("text", 20, 2, BWHT, "witness. The court gives her an hour."),
+    ("text", 19, 2, BWHT, "Eight women are accused. Seven"),
+    ("text", 20, 2, BWHT, "witnesses will be heard, then the jury."),
+    ("wait",),
+    ("pic", "court"),
+    ("story", YEL, "The court sits by candlelight. Justice Ormsby in the middle, "
+                   "who has tried a great many cases, and dined after every one. "
+                   "Justice Lyle on his right."),
+    ("story", YEL, "The gallery is full. Half of Islandmagee has walked to "
+                   "Carrickfergus in the dark."),
+    ("wait",),
+    ("pic", "dock"),
+    ("story", WHT, "The accused are brought up: Janet Boyd and her daughter Bessie "
+                   "Shaw, Kate Rankin, Janet Moore, Janet Kerr, Janet Erskine, Jean "
+                   "Patterson, Margaret Ross."),
+    ("story", YEL, "Each pleads not guilty. They have no counsel. They will not "
+                   "be asked to speak again."),
     ("wait",),
     ("trial",),
-    ("cls", WHT),
-    ("story", YEL, "This build goes no further. In the game to come the other "
-                   "witnesses follow, then Mayor Ellis, then the jury."),
-    ("wait",),
+    ("pic", "pillory"),
     ("story", BWHT, "What happened in 1711"),
     ("story", YEL, "Whatever a jury does in this game, the history does not "
-                   "change. On the 31st of March 1711 the accused were "
-                   "convicted at Carrickfergus, and sentenced to a year's "
-                   "imprisonment and to stand four times in the pillory."),
-    ("story", YEL, "One of the three judges argued for their acquittal. He was "
-                   "outvoted."),
+                   "change. On the 31st of March 1711 eight women were convicted "
+                   "at Carrickfergus, and sentenced to a year's imprisonment and to "
+                   "stand four times in the pillory."),
     ("wait",),
-    ("story", WHT, "The people in this game stand in for real ones. Their "
-                   "records are at w1711.org."),
+    ("story", YEL, "The crowd pelted them with eggs and cabbage stalks."),
+    ("story", YEL, "One of the three judges told the jury they could not convict "
+                   "on the girl's visions alone. He was outvoted."),
+    ("wait",),
+    ("story", WHT, "No one in this game was a witch. The people in it stand in for "
+                   "real ones: neighbours, a servant, a minister, a mayor, and "
+                   "eight women. Their records are at w1711.org."),
     ("wait",),
     ("jump", "credits"),
 ]
@@ -167,4 +181,4 @@ CREDITS = [
 ]
 
 SCRIPTS = [("title", TITLE), ("prologue_start", PROLOGUE), ("credits_start", CREDITS)]
-PICS = ["house", "window", "grave"]
+PICS = ["house", "window", "grave", "court", "dock", "isobel_in", "pillory"]

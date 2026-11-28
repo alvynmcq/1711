@@ -1,25 +1,25 @@
-# The bench and the clock (v0.9). The record at the first line, a fact
-# that doesn't bear: Ormsby's first rebuke, the bench at 10. The bench
-# poked to 2, the same again: the second rebuke, and Lyle is silenced
-# (the manner line, the fewer keys; SPACE and ENTER only get "Brother.").
-# The clock poked to 58 minutes: P hears the next line (3 minutes), the
-# bell at seven, the first candle out, she stands down; Lyle's notes are
-# empty ("Nothing was written.").
-frames 2900
-every 60 40 15 SPACE
-950 ENTER
-1000 5
-1050 ENTER
-1200 SPACE
-poke 1260 tr_pat=2
-1300 ENTER
-1350 ENTER
-1600 SPACE
-1850 SPACE
-1950 SPACE
-2000 ENTER
-poke 2060 tr_t=58
-2100 P
-2600 SPACE
-2700 SPACE
-shot 1000 1150 1250 1550 1820 1900 1960 2050 2350 2550 2650 2800
+# The bench and the clock (v0.9; v1.0: 21 SPACEs reach Lowry). The
+# record at the first line, a fact that doesn't bear: Ormsby's first
+# rebuke, the bench at 10. The bench poked to 2, the same again: the
+# second rebuke, and Lyle is silenced (the manner line, the fewer keys;
+# SPACE and ENTER only get "Brother."). The clock poked to 78 minutes: P
+# hears the next line (4 minutes), past her 80 in the box and past seven:
+# the bell, a candle out, she stands down; Margaret Wylie is called.
+frames 3140
+every 60 40 21 SPACE
+1190 ENTER
+1240 5
+1290 ENTER
+1440 SPACE
+poke 1500 tr_pat=2
+1540 ENTER
+1590 ENTER
+1840 SPACE
+2090 SPACE
+2190 SPACE
+2240 ENTER
+poke 2300 tr_t=78
+2340 P
+2840 SPACE
+2940 SPACE
+shot 1240 1390 1490 1790 2060 2140 2200 2290 2590 2790 2890 3040

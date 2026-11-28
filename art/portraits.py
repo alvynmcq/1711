@@ -331,6 +331,223 @@ def lowry():
     return features(paint(), False), features(paint(), True)
 
 
+def witness(spec):
+    """A witness in the box (16 x 14), from a spec (v1.0). Returns (steady,
+    faltering). The same build as Lowry's: the body, the head, the face lit
+    from one side (the candle on the box's ledge), then the features put a
+    pixel at a time so the scaling doesn't smear them. Faltering moves only
+    the brows, eyes and mouth, so the delta stays small and the colours
+    never change.
+
+    spec: light 'left'/'right'; dress: 'woman', 'farmer', 'elder',
+    'minister', 'mayor'; head: 'hood', 'hair', 'bald', 'skullcap', 'wig';
+    hair (0-1, how light); face (width, top, bottom); age (lines);
+    look: (x offset of the eyes steady, faltering); mouth: 'set',
+    'pressed', 'smug'; seed."""
+    left = spec["light"] == "left"
+    fw, ft, fb = spec.get("face", (22, 24, 72))
+    cx = 64
+    x0, x1 = cx - fw, cx + fw
+
+    def L(x, lo, hi, g=0.9):
+        return side(x, 20, 112, lo, hi, g) if left else side(x, 108, 16, lo, hi, g)
+
+    def paint():
+        c = Canvas(16, 14)
+        dress = spec["dress"]
+        # the body: shoulders, a coat or a gown, dark, lit on the candle side
+        coat_ink = WHITE if dress in ("minister", "woman") else YELLOW
+        top = 74 if dress != "mayor" else 72
+        c.poly([(0, 112), (4, 94), (22, 80), (44, top), (84, top), (106, 80), (124, 94), (127, 112)],
+               lambda x, y: L(x, 0.02, 0.36 if dress != "minister" else 0.24, 1.4), coat_ink)
+        if dress == "mayor":
+            # a laced coat: braid down the front, a chain of office
+            c.line([(46, 76), (40, 112)], 0.9, 1.2, YELLOW + BR)
+            c.line([(82, 76), (88, 112)], 0.5, 1.2, YELLOW)
+            c.line([(44, 80), (54, 98), (64, 104), (74, 98), (84, 80)], 1.0, 1.5, YELLOW + BR)
+            c.ellipse((60, 100, 68, 110), 1.0, YELLOW + BR)
+            # the lace cravat, falling white
+            c.poly([(54, 72), (74, 72), (72, 86), (68, 96), (60, 96), (56, 86)],
+                   lambda x, y: L(x, 0.3, 1.0, 0.7), WHITE)
+            c.line([(64, 74), (64, 94)], 0.45, 0.6)
+        elif dress == "minister":
+            # black gown, the white bands at the throat
+            c.poly([(57, 74), (63, 74), (62, 92), (56, 92)], lambda x, y: L(x, 0.5, 1.0), WHITE)
+            c.poly([(65, 74), (71, 74), (72, 92), (66, 92)], lambda x, y: L(x, 0.4, 0.9), WHITE)
+        elif dress == "woman":
+            # a dark gown, a falling band of linen at the neck
+            c.poly([(42, 78), (54, 74), (64, 84), (74, 74), (86, 78), (80, 92), (64, 98), (48, 92)],
+                   lambda x, y: L(x, 0.2, 0.95, 0.8), WHITE)
+            c.line([(64, 84), (64, 98)], 0.15, 0.8)
+        else:
+            # a farmer's or an elder's coat, a plain shirt and neckcloth
+            c.poly([(52, 74), (64, 86), (76, 74), (72, 92), (56, 92)],
+                   lambda x, y: L(x, 0.2, 0.9, 0.8), WHITE)
+            c.line([(46, 76), (58, 112)], 0.0, 1.0)              # the coat's edge
+            c.line([(82, 76), (70, 112)], 0.0, 1.0)
+            if dress == "elder":
+                c.line([(64, 80), (64, 96)], 0.3, 0.6)
+        # the neck, in shadow under the jaw
+        c.poly([(cx - 12, fb - 8), (cx + 12, fb - 8), (cx + 14, 78), (cx - 14, 78)],
+               lambda x, y: L(x, 0.06, 0.55) * (0.4 if y < 76 else 0.7), YELLOW)
+        head = spec["head"]
+        hv = spec.get("hair", 0.2)
+        if head == "wig":
+            # a full-bottomed periwig over the shoulders: lit on the candle
+            # side, lost in the dark on the other, so it never rings the face
+            c.ellipse((cx - 44, ft - 18, cx + 44, fb + 6), lambda x, y: L(x, 0.0, 0.7, 1.6), WHITE)
+            c.poly([(cx - 46, 40), (cx - 30, 40), (cx - 24, 96), (cx - 42, 100)],
+                   lambda x, y: L(x, 0.0, 0.65, 1.6), WHITE)
+            c.poly([(cx + 30, 40), (cx + 46, 40), (cx + 42, 100), (cx + 24, 96)],
+                   lambda x, y: L(x, 0.0, 0.65, 1.6), WHITE)
+            for k in range(7):                                   # its curls, row on row
+                y = 14 + k * 12
+                c.line([(cx - 44, y), (cx - 36, y + 5), (cx - 28, y)], 0.2, 1.2)
+                c.line([(cx + 28, y), (cx + 36, y + 5), (cx + 44, y)], 0.05, 1.2)
+        elif head == "hood":
+            # a black silk hood, the edge of a white cap just showing
+            c.ellipse((cx - 34, ft - 18, cx + 34, fb + 8), lambda x, y: L(x, 0.04, 0.4, 1.4), WHITE)
+            c.poly([(cx - 34, 50), (cx - 26, 90), (cx - 40, 100)], lambda x, y: L(x, 0.02, 0.3), WHITE)
+            c.poly([(cx + 34, 50), (cx + 26, 90), (cx + 40, 100)], lambda x, y: L(x, 0.02, 0.3), WHITE)
+        elif head == "hair":
+            # his own hair, worn long, uncovered for the court
+            c.ellipse((cx - 28, ft - 12, cx + 28, fb), lambda x, y: L(x, 0.02, 0.15 + hv * 0.5, 1.5), YELLOW)
+            c.poly([(cx - 28, 40), (cx - 20, 40), (cx - 18, 78), (cx - 30, 74)],
+                   lambda x, y: L(x, 0.02, 0.1 + hv * 0.4, 1.5), YELLOW)
+            c.poly([(cx + 20, 40), (cx + 28, 40), (cx + 30, 74), (cx + 18, 78)],
+                   lambda x, y: L(x, 0.02, 0.1 + hv * 0.4, 1.5), YELLOW)
+        elif head == "bald":
+            # thin white hair at the sides only
+            c.ellipse((cx - 26, ft - 6, cx + 26, fb - 10), lambda x, y: L(x, 0.03, 0.55, 1.4), WHITE)
+        elif head == "skullcap":
+            c.ellipse((cx - 24, ft - 8, cx + 24, fb - 12), lambda x, y: L(x, 0.02, 0.2, 1.4), YELLOW)
+        # the face
+        face = [(x0 + 2, ft + 12), (x0 + 6, ft + 4), (x0 + 14, ft), (x1 - 14, ft), (x1 - 6, ft + 4),
+                (x1 - 2, ft + 12), (x1 - 1, ft + 26), (x1 - 6, ft + 36), (cx + 8, fb - 2),
+                (cx - 2, fb), (cx - 10, fb - 4), (x0 + 4, ft + 36), (x0, ft + 24)]
+
+        def face_lum(x, y):
+            v = L(x, 0.42, 1.0, 0.6)
+            if y > fb - 6:
+                v *= 0.8
+            return v
+        c.poly(face, face_lum, YELLOW)
+        lit = [(x0 - 2, ft), (cx - 2, ft), (cx - 4, fb), (x0 - 2, fb - 12)] if left else \
+              [(cx + 2, ft), (x1 + 2, ft), (x1 + 2, fb - 12), (cx + 4, fb)]
+        c.poly(lit, None, YELLOW + BR)                            # the lit half bright
+        if head == "skullcap":
+            c.poly([(x0 + 2, ft + 10), (x0 + 6, ft - 4), (cx, ft - 8), (x1 - 6, ft - 4), (x1 - 2, ft + 10),
+                    (cx, ft + 2)], 0.04)
+        elif head == "bald":
+            c.poly([(x0 + 4, ft + 8), (x0 + 10, ft - 4), (cx, ft - 8), (x1 - 10, ft - 4), (x1 - 4, ft + 8)],
+                   lambda x, y: L(x, 0.35, 0.95, 0.7), YELLOW)
+        elif head in ("hair", "wig", "hood"):
+            hl = 0.04 if head != "wig" else 0.6
+            c.poly([(x0 + 2, ft + 12), (x0 + 6, ft + 2), (x0 + 16, ft - 2), (x1 - 16, ft - 2), (x1 - 6, ft + 2),
+                    (x1 - 2, ft + 12), (x1 - 8, ft + 6), (cx, ft + 4), (x0 + 8, ft + 6)],
+                   (lambda x, y: L(x, 0.0, hl)) if head == "wig" else 0.04 + hv * 0.2,
+                   WHITE if head == "wig" else None)
+        ey = ft + 18
+        c.ellipse((cx - 19, ey - 4, cx - 3, ey + 6), 0.85 if left else 0.6)     # the eyes, lit enough
+        c.ellipse((cx + 1, ey - 4, cx + 16, ey + 6), 0.6 if left else 0.85)
+        nx = cx - 2 if left else cx + 1
+        c.poly([(nx - 3, ey + 2), (nx, ey - 4), (nx + 1, ey + 14), (nx - 3, ey + 16)], 1.0)
+        ck = (cx - 17, ey + 8, cx - 7, ey + 17) if left else (cx + 6, ey + 8, cx + 16, ey + 17)
+        c.ellipse(ck, 1.0)                                       # the near cheek
+        if spec["dress"] == "mayor":
+            c.ellipse((cx - 14, fb - 6, cx + 14, fb + 4), lambda x, y: L(x, 0.3, 0.9), YELLOW)  # a second chin
+        return c.to_pic(spec["seed"])
+
+    def features(p, falter):
+        px = p.lum.load()
+
+        def put(pts, v):
+            for (x, y) in pts:
+                if 0 <= x < 128 and 0 <= y < 112:
+                    px[x, y] = int(v * 255)
+        ey = ft + 18
+        ex0, ex1 = (cx - 16, cx - 6), (cx + 4, cx + 13)          # the eyes' spans
+        look = spec.get("look", (0, -3))[1 if falter else 0]
+        lift = 2 if falter else 0
+        bro = spec.get("brows", 0)                               # + lower, a frown
+        # brows
+        for (a, b), v in ((ex0, 0.25), (ex1, 0.25)):
+            put([(x, ey - 4 + bro - lift - (1 if falter and a + 3 <= x <= b - 3 else 0))
+                 for x in range(a, b + 1)], v)
+        # eyes: a lid, the white, the iris (moved by look), the lower lid
+        lid = spec.get("lids", 0) + (1 if falter else 0)         # heavy-lidded
+        for (a, b), w in ((ex0, 1.0 if left else 0.75), (ex1, 0.75 if left else 1.0)):
+            put([(x, y) for x in range(a, b + 1) for y in (ey, ey + 1)], w)
+            put([(x, ey - 1) for x in range(a, b + 1)] + [(a - 1, ey), (b + 1, ey)], 0.0)
+            if lid:
+                put([(x, ey) for x in range(a, b + 1)], 0.5)
+            m = (a + b) // 2 + look
+            put([(x, y) for x in (m, m + 1) for y in (ey - 1 + lid, ey, ey + 1)], 0.0)
+            put([(x, ey + 2) for x in range(a + 1, b)], 0.5)
+        # nose shadow and nostrils
+        nx = cx + 1 if left else cx - 2
+        put([(nx, y) for y in range(ey + 6, ey + 15)], 0.5)
+        put([(cx - 3, ey + 16), (cx + 1, ey + 16)], 0.0)
+        my = ey + 21
+        mouth = spec.get("mouth", "set")
+        if not falter:
+            if mouth == "smug":                                  # the Mayor, pleased
+                put([(x, my) for x in range(cx - 7, cx + 6)], 0.0)
+                put([(cx + 6, my - 1), (cx + 7, my - 2)], 0.0)
+                put([(x, my + 1) for x in range(cx - 6, cx + 5)], 1.0)
+            elif mouth == "pressed":
+                put([(x, my) for x in range(cx - 6, cx + 5)], 0.0)
+                put([(cx - 7, my + 1), (cx + 5, my + 1)], 0.25)  # turned down
+                put([(x, my + 1) for x in range(cx - 5, cx + 4)], 1.0)
+            else:
+                put([(x, my) for x in range(cx - 7, cx + 6)], 0.0)
+                put([(x, my + 1) for x in range(cx - 6, cx + 5)], 1.0)
+        else:
+            o = 3 if mouth == "smug" else 2                      # the Mayor's mouth falls open wider
+            w = 4 if mouth == "smug" else 5
+            for k in range(o):
+                put([(x, my - 1 + k) for x in range(cx - w, cx + w)], 0.0)
+            put([(cx - w - 1, my), (cx + w, my)], 0.5)
+            put([(x, my - 1 + o) for x in range(cx - w + 1, cx + w - 1)], 1.0)
+        for (x, y) in spec.get("lines", []):                     # age
+            put([(x, y), (x, y + 1), (x, y + 2)], 0.5)
+        return p
+    return features(paint(), False), features(paint(), True)
+
+
+WITNESSES = {
+    # Margaret Wylie: a gentlewoman, Hugh Wylie's sister, in a black hood;
+    # she looks straight at the bench, lips pressed; faltering, her eyes go
+    # to the side, towards the house's people in the gallery
+    "wylie": dict(light="left", dress="woman", head="hood", face=(20, 26, 72),
+                  look=(0, 3), brows=1, mouth="pressed", seed=1720,
+                  lines=[(50, 66), (77, 66)]),
+    # William Dickey: a farmer, his own hair, frank; he has told this in
+    # every kitchen on the island
+    "dickey": dict(light="left", dress="farmer", head="hair", hair=0.35, face=(23, 24, 72),
+                   look=(0, -3), seed=1721),
+    # John Wilson: younger, thinner, lit from the other side; even steady,
+    # his eyes slide towards Dickey in the court; faltering, they drop
+    "wilson": dict(light="right", dress="farmer", head="hair", hair=0.15, face=(20, 25, 72),
+                   look=(2, -3), seed=1722),
+    # Hugh Gilmour: an elder, bald, white at the sides, lined; careful
+    "gilmour": dict(light="left", dress="elder", head="bald", face=(22, 26, 72), lids=1,
+                    look=(0, -3), seed=1723, lines=[(46, 52), (82, 52), (49, 68), (79, 68)]),
+    # Mr Gordon: the minister, black skullcap, white bands, earnest
+    "gordon": dict(light="right", dress="minister", head="skullcap", face=(21, 24, 72),
+                   look=(0, -3), brows=-1, seed=1724, lines=[(52, 64), (75, 64)]),
+    # Mayor Ellis: a full periwig, the chain of office, a second chin,
+    # heavy-lidded and pleased with himself; faltering, his eyes come wide
+    # open and his mouth falls open. The humour is his.
+    "ellis": dict(light="left", dress="mayor", head="wig", face=(25, 26, 74), lids=1,
+                  look=(0, 3), mouth="smug", seed=1725),
+}
+
+
+def _w(name):
+    return lambda: witness(WITNESSES[name])
+
+
 def block(p, pw, ph):
     """Cut the portrait out of a rendered screen: its size, pixels row by
     row, then attributes row by row."""
@@ -371,7 +588,9 @@ def preview(scr, pw, ph, path):
     os.remove(tmp)
 
 
-PORTRAITS = [("isobel", isobel, 10, 12), ("kate", kate, 10, 12), ("lowry", lowry, 16, 14)]
+# Kate (v0.7) is no longer shown (v1.0: out of the build; kate() kept)
+PORTRAITS = [("isobel", isobel, 10, 12), ("lowry", lowry, 16, 14)] + \
+    [(n, _w(n), 16, 14) for n in ("wylie", "dickey", "wilson", "gilmour", "gordon", "ellis")]
 
 if __name__ == "__main__":
     import zx0

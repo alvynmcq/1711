@@ -21,7 +21,8 @@ A test (tools/tests/NAME.keys) is lines of:
   shot F [F...]                compare the screen at frame F
   poke F LABEL=VALUE           at frame F, set the byte at LABEL (from
                                src/main.sym) to VALUE (v0.8: e.g. pat=2,
-                               to test Mayor Ellis's patience running out)
+                               to test Mayor Ellis's patience running out);
+                               LABEL+N (v1.0) is N bytes after it
   # anything                   a comment
 """
 import os
@@ -63,6 +64,9 @@ def parse(path):
 
 
 def symbol(name):
+    if "+" in name:                              # LABEL+N (v1.0): a byte into a table
+        base, off = name.split("+")
+        return symbol(base) + int(off, 0)
     for ln in open(os.path.join(ROOT, "src", "main.sym")):
         w = ln.split()
         if len(w) == 3 and w[0] == name:

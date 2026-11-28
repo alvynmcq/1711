@@ -1,6 +1,6 @@
 ; ============================================================
-;  1711  (working title) - v0.9: title, prologue, the trial (a
-;  witness's cross-examination), credits
+;  1711  (working title) - v1.0: title, prologue, the trial (the
+;  day: the witnesses, the charges, the verdict), credits
 ;  ZX Spectrum 128K. pasmo syntax. Loaded at 6000h by the BASIC
 ;  loader (CLEAR 24575). Everything here stays below C000h; the
 ;  scripts, pictures and the trial are in banks paged in at C000h
@@ -167,6 +167,11 @@ op_cls: ld a,(hl)           ; attr
 op_pic: ld a,(hl)           ; db picture number (pictab: bank, ZX0 screen)
         inc hl
         push hl
+        call drawpic
+        pop hl
+        jp run
+
+drawpic:                    ; picture A (pictab), the bank that was in kept
         ld hl,pictab
         call farent
         ld d,a
@@ -183,12 +188,11 @@ op_pic: ld a,(hl)           ; db picture number (pictab: bank, ZX0 screen)
         pop hl
         ld de,4000h
         call dzx0_standard
-        pop af              ; the script's bank back
+        pop af              ; the bank that was in, back
         call page
         xor a
         ld (skip),a
-        pop hl
-        jp run
+        ret
 
 op_text:
         xor a
@@ -739,9 +743,9 @@ attrbase: dw ATTR
 curbank: db 0
 frames: dw 0
 
+        INCLUDE "trialc.inc"        ; the day's common tables (scripts/trial.py, v1.0)
         INCLUDE "trial.asm"
         INCLUDE "dzx0_standard.asm"
         INCLUDE "font.inc"
         INCLUDE "banks.inc"         ; chunks, pictures, portraits: bank + address (build.py)
-        INCLUDE "trialsym.inc"      ; the trial's labels, at TBUF in its bank (build.py)
 END_OF_CODE:
